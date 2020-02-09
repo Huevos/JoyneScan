@@ -1,0 +1,322 @@
+# -*- coding: utf-8 -*-
+import os, codecs, re
+
+from enigma import eDVBFrontendParametersSatellite
+
+class LamedbWriter():
+
+	def writeLamedb(self, path, transponders):
+		print "[JoyneScan-LamedbWriter] Writing lamedb..."
+
+		transponders_count = 0
+		services_count = 0
+
+		lamedblist = []
+		lamedblist.append("eDVB services /4/\n")
+		lamedblist.append("transponders\n")
+
+		for key in transponders.keys():
+			transponder = transponders[key]
+			if "services" not in transponder.keys() or len(transponder["services"]) < 1:
+				continue
+			lamedblist.append("%08x:%04x:%04x\n" %
+				(transponder["namespace"],
+				transponder["transport_stream_id"],
+				transponder["original_network_id"]))
+
+			if transponder["dvb_type"] == "dvbs":
+				if transponder["orbital_position"] > 1800:
+					orbital_position = transponder["orbital_position"] - 3600
+				else:
+					orbital_position = transponder["orbital_position"]
+
+				if transponder["modulation_system"] == 0: # DVB-S
+					lamedblist.append("\ts %d:%d:%d:%d:%d:%d:%d\n" %
+						(transponder["frequency"],
+						transponder["symbol_rate"],
+						transponder["polarization"],
+						transponder["fec_inner"],
+						orbital_position,
+						transponder["inversion"],
+						transponder["flags"]))
+				else: # DVB-S2
+					multistream = ''
+					t2mi = ''
+					if "t2mi_plp_id" in transponder and "t2mi_pid" in transponder:
+						t2mi = ':%d:%d' % (
+							transponder["t2mi_plp_id"],
+							transponder["t2mi_pid"])
+					if "is_id" in transponder and "pls_code" in transponder and "pls_mode" in transponder:
+						multistream = ':%d:%d:%d' % (
+							transponder["is_id"],
+							transponder["pls_code"],
+							transponder["pls_mode"])
+					if t2mi and not multistream: # this is to pad t2mi values if necessary.
+						try: # some images are still not multistream aware after all this time
+							multistream = ':%d:%d:%d' % (
+								eDVBFrontendParametersSatellite.No_Stream_Id_Filter,
+								eDVBFrontendParametersSatellite.PLS_Gold,
+								eDVBFrontendParametersSatellite.PLS_Default_Gold_Code)
+						except AttributeError as err:
+							print "[ABM-BouquetsWriter] some images are still not multistream aware after all this time",  err
+					lamedblist.append("\ts %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d%s%s\n" %
+						(transponder["frequency"],
+						transponder["symbol_rate"],
+						transponder["polarization"],
+						transponder["fec_inner"],
+						orbital_position,
+						transponder["inversion"],
+						transponder["flags"],
+						transponder["modulation_system"],
+						transponder["modulation_type"],
+						transponder["roll_off"],
+						transponder["pilot"],
+						multistream,
+						t2mi))
+			elif transponder["dvb_type"] == "dvbt":
+				lamedblist.append("\tt %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d\n" %
+					(transponder["frequency"],
+					transponder["bandwidth"],
+					transponder["code_rate_hp"],
+					transponder["code_rate_lp"],
+					transponder["modulation"],
+					transponder["transmission_mode"],
+					transponder["guard_interval"],
+					transponder["hierarchy"],
+					transponder["inversion"],
+					transponder["flags"],
+					transponder["system"],
+					transponder["plpid"]))
+			elif transponder["dvb_type"] == "dvbc":
+				lamedblist.append("\tc %d:%d:%d:%d:%d:%d:%d\n" %
+					(transponder["frequency"],
+					transponder["symbol_rate"],
+					transponder["inversion"],
+					transponder["modulation_type"],
+					transponder["fec_inner"],
+					transponder["flags"],
+					transponder["modulation_system"]))
+			lamedblist.append("/\n")
+			transponders_count += 1
+
+		lamedblist.append("end\nservices\n")
+		for key in transponders.keys():
+			transponder = transponders[key]
+			if "services" not in transponder.keys():
+				continue
+
+			for key2 in transponder["services"].keys():
+				service = transponder["services"][key2]
+
+				if "ATSC_source_id" in service:
+					lamedblist.append("%04x:%08x:%04x:%04x:%d:%d:%x\n" %
+						(service["service_id"],
+						service["namespace"],
+						service["transport_stream_id"],
+						service["original_network_id"],
+						service["service_type"],
+						service["flags"],
+						service["ATSC_source_id"]))
+				else:
+					lamedblist.append("%04x:%08x:%04x:%04x:%d:%d\n" %
+						(service["service_id"],
+						service["namespace"],
+						service["transport_stream_id"],
+						service["original_network_id"],
+						service["service_type"],
+						service["flags"]))
+
+				control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
+				control_char_re = re.compile('[%s]' % re.escape(control_chars))
+				if 'provider_name' in service.keys():
+					service_name = control_char_re.sub('', service["service_name"]).decode('latin-1').encode("utf8")
+					provider_name = control_char_re.sub('', service["provider_name"]).decode('latin-1').encode("utf8")
+				else:
+					service_name = service["service_name"]
+
+				lamedblist.append("%s\n" % service_name)
+
+				service_ca = ""
+				if "free_ca" in service.keys() and service["free_ca"] != 0:
+					service_ca = ",C:0000"
+
+				service_flags = ""
+				if "service_flags" in service.keys() and service["service_flags"] > 0:
+					service_flags = ",f:%x" % service["service_flags"]
+
+				if 'service_line' in service.keys():
+					lamedblist.append(self.utf8_convert("%s\n" % service["service_line"]))
+				else:
+					lamedblist.append("p:%s%s%s\n" % (provider_name, service_ca, service_flags))
+				services_count += 1
+
+		lamedblist.append("end\nHave a lot of bugs!\n")
+		lamedb = codecs.open(path + "/lamedb", "w", "utf-8")
+		lamedb.write(''.join(lamedblist))
+		lamedb.close()
+		del lamedblist
+
+		print "[JoyneScan-LamedbWriter] Wrote %d transponders and %d services" % (transponders_count, services_count)
+
+	def writeLamedb5(self, path, transponders):
+		print "[JoyneScan-LamedbWriter] Writing lamedb V5..."
+
+		transponders_count = 0
+		services_count = 0
+
+		lamedblist = []
+		lamedblist.append("eDVB services /5/\n")
+		lamedblist.append("# Transponders: t:dvb_namespace:transport_stream_id:original_network_id,FEPARMS\n")
+		lamedblist.append("#     DVBS  FEPARMS:   s:frequency:symbol_rate:polarisation:fec:orbital_position:inversion:flags\n")
+		lamedblist.append("#     DVBS2 FEPARMS:   s:frequency:symbol_rate:polarisation:fec:orbital_position:inversion:flags:system:modulation:rolloff:pilot[,MIS/PLS:is_id:pls_code:pls_mode][,T2MI:t2mi_plp_id:t2mi_pid]\n")
+		lamedblist.append("#     DVBT  FEPARMS:   t:frequency:bandwidth:code_rate_HP:code_rate_LP:modulation:transmission_mode:guard_interval:hierarchy:inversion:flags:system:plp_id\n")
+		lamedblist.append("#     DVBC  FEPARMS:   c:frequency:symbol_rate:inversion:modulation:fec_inner:flags:system\n")
+		lamedblist.append('# Services: s:service_id:dvb_namespace:transport_stream_id:original_network_id:service_type:service_number:source_id,"service_name"[,p:provider_name][,c:cached_pid]*[,C:cached_capid]*[,f:flags]\n')
+
+		for key in transponders.keys():
+			transponder = transponders[key]
+			if "services" not in transponder.keys() or len(transponder["services"]) < 1:
+				continue
+			lamedblist.append("t:%08x:%:%04x," %
+				(transponder["namespace"],
+				transponder["transport_stream_id"],
+				transponder["original_network_id"]))
+
+			if transponder["dvb_type"] == "dvbs":
+				if transponder["orbital_position"] > 1800:
+					orbital_position = transponder["orbital_position"] - 3600
+				else:
+					orbital_position = transponder["orbital_position"]
+
+				if transponder["modulation_system"] == 0: # DVB-S
+					lamedblist.append("s:%d:%d:%d:%d:%d:%d:%d\n" %
+						(transponder["frequency"],
+						transponder["symbol_rate"],
+						transponder["polarization"],
+						transponder["fec_inner"],
+						orbital_position,
+						transponder["inversion"],
+						transponder["flags"]))
+				else: # DVB-S2
+					multistream = ''
+					t2mi = ''
+					if "is_id" in transponder and "pls_code" in transponder and "pls_mode" in transponder:
+						try: # some images are still not multistream aware after all this time
+							# don't write default values
+							if not (transponder["is_id"] == eDVBFrontendParametersSatellite.No_Stream_Id_Filter and transponder["pls_code"] == eDVBFrontendParametersSatellite.PLS_Gold and transponder["pls_mode"] == eDVBFrontendParametersSatellite.PLS_Default_Gold_Code):
+								multistream = ',MIS/PLS:%d:%d:%d' % (
+									transponder["is_id"],
+									transponder["pls_code"],
+									transponder["pls_mode"])
+						except AttributeError as err:
+							print "[-BouquetsWriter] some images are still not multistream aware after all this time", err
+					if "t2mi_plp_id" in transponder and "t2mi_pid" in transponder:
+						t2mi = ',T2MI:%d:%d' % (
+						transponder["t2mi_plp_id"],
+						transponder["t2mi_pid"])
+					lamedblist.append("s:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d%s%s\n" %
+						(transponder["frequency"],
+						transponder["symbol_rate"],
+						transponder["polarization"],
+						transponder["fec_inner"],
+						orbital_position,
+						transponder["inversion"],
+						transponder["flags"],
+						transponder["modulation_system"],
+						transponder["modulation_type"],
+						transponder["roll_off"],
+						transponder["pilot"],
+						multistream,
+						t2mi))
+			elif transponder["dvb_type"] == "dvbt":
+				lamedblist.append("t:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d\n" %
+					(transponder["frequency"],
+					transponder["bandwidth"],
+					transponder["code_rate_hp"],
+					transponder["code_rate_lp"],
+					transponder["modulation"],
+					transponder["transmission_mode"],
+					transponder["guard_interval"],
+					transponder["hierarchy"],
+					transponder["inversion"],
+					transponder["flags"],
+					transponder["system"],
+					transponder["plpid"]))
+			elif transponder["dvb_type"] == "dvbc":
+				lamedblist.append("c:%d:%d:%d:%d:%d:%d:%d\n" %
+					(transponder["frequency"],
+					transponder["symbol_rate"],
+					transponder["inversion"],
+					transponder["modulation_type"],
+					transponder["fec_inner"],
+					transponder["flags"],
+					transponder["modulation_system"]))
+			transponders_count += 1
+
+		for key in transponders.keys():
+			transponder = transponders[key]
+			if "services" not in transponder.keys():
+				continue
+
+			for key2 in transponder["services"].keys():
+				service = transponder["services"][key2]
+
+				if "ATSC_source_id" not in service:
+					service["ATSC_source_id"] = 0
+
+				lamedblist.append("s:%04x:%08x:%04x:%04x:%d:%d:%x," %
+					(service["service_id"],
+					service["namespace"],
+					service["transport_stream_id"],
+					service["original_network_id"],
+					service["service_type"],
+					service["flags"],
+					service["ATSC_source_id"]))
+
+				control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
+				control_char_re = re.compile('[%s]' % re.escape(control_chars))
+				if 'provider_name' in service.keys():
+					service_name = control_char_re.sub('', service["service_name"]).decode('latin-1').encode("utf8")
+					provider_name = control_char_re.sub('', service["provider_name"]).decode('latin-1').encode("utf8")
+				else:
+					service_name = service["service_name"]
+
+				lamedblist.append('"%s"' % service_name)
+
+				service_ca = ""
+				if "free_ca" in service.keys() and service["free_ca"] != 0:
+					service_ca = ",C:0000"
+
+				service_flags = ""
+				if "service_flags" in service.keys() and service["service_flags"] > 0:
+					service_flags = ",f:%x" % service["service_flags"]
+
+				if 'service_line' in service.keys():
+					if len(service["service_line"]):
+						lamedblist.append(",%s\n" % self.utf8_convert(service["service_line"]))
+					else:
+						lamedblist.append("\n")
+				else:
+					lamedblist.append(",p:%s%s%s\n" % (provider_name, service_ca, service_flags))
+				services_count += 1
+
+		lamedb = codecs.open(path + "/lamedb", "w", "utf-8")
+		lamedb.write(''.join(lamedblist))
+		lamedb.close()
+		del lamedblist
+
+		print "[JoyneScan-LamedbWriter] Wrote %d transponders and %d services" % (transponders_count, services_count)
+
+	def utf8_convert(self, text):
+		for encoding in ["utf8","latin-1"]:
+			try:
+				text.decode(encoding=encoding)
+			except UnicodeDecodeError:
+				encoding = None
+			else:
+				break
+		if encoding == "utf8":
+			return text
+		if encoding is None:
+			encoding = "utf8"
+		return text.decode(encoding, errors="ignore").encode("utf8")
