@@ -5,12 +5,18 @@ from Components.ActionMap import ActionMap
 from Components.config import config, getConfigListEntry, configfile
 from Components.ConfigList import ConfigListScreen
 from Components.Label import Label
+from Components.ProgressBar import ProgressBar
 from Components.Sources.StaticText import StaticText
+from Components.Sources.FrontendStatus import FrontendStatus
+from Components.Sources.Progress import Progress
 
 from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 
 from about import JoyneScan_About
+from dowloadbar import downloadBar
+from lamedbreader import LamedbReader
+from lamedbwriter import LamedbWriter
 from providers import PROVIDERS
 
 from enigma import eTimer
@@ -18,8 +24,128 @@ from enigma import eTimer
 from time import localtime, time, strftime, mktime
 
 class JoyneScan(): # the downloader
+	skin = downloadBar()
+	
 	def __init__(self, session, args = None):
+		self.debugName = "JoyneScan"
+		self.title = _("Joyne Scan")
+		print "[%s][__init__] Starting..." % (self.debugName,)
+		print "[%s][__init__] args" % (self.debugName,), args
+		self.config = config.plugins.joynescan
+		self.session = session
+		Screen.__init__(self, session)
+		Screen.setTitle(self, self.title)
+
+		self["action"] = Label(_("Starting scanner"))
+		self["status"] = Label("")
+		self["progress"] = ProgressBar()
+		self["progress_text"] = Progress()
+		self["tuner_text"] = Label("")
+
+		# don't forget to disable this ActionMap before writing to any settings files
+		self["actions"] = ActionMap(["SetupActions"],
+		{
+			"cancel": self.keyCancel,
+		}, -2)
+
+		self.selectedNIM = -1
+		if args:
+			pass
+		self.frontend = None
+		self["Frontend"] = FrontendStatus(frontend_source = lambda : self.frontend, update_interval = 100)
+		self.rawchannel = None
+		self.postScanService = None # self.session.nav.getCurrentlyPlayingServiceOrGroup()
+		self.index = 0
+		self.LOCK_TIMEOUT_ROTOR = 1200 	# 100ms for tick - 120 sec
+		self.LOCK_TIMEOUT_FIXED = 50 	# 100ms for tick - 5 sec
+
+		self.LOCK_TIMEOUT = self.LOCK_TIMEOUT_FIXED
+		
+		self.path = "/etc/enigma2" # path to settings files
+
+
+
+		self.homeTransponder = PROVIDERS[self.config.provider.value]["transponder"]
+		self.bat = PROVIDERS[self.config.provider.value]["bat"]
+
+		self.transponders_dict = {} # overwritten in firstExec
+		
+		self.services_dict = {}
+		self.tmp_services_dict = {}
+		self.namespace_dict = {} # to store namespace when sub network is enabled
+		self.logical_channel_number_dict = {}
+		self.ignore_visible_service_flag = False # make this a user override later if found necessary. Visible service flag is currently available in the NIT and BAT on Joyne home transponders
+		self.VIDEO_ALLOWED_TYPES = [1, 4, 5, 17, 22, 24, 25, 27, 135]
+		self.AUDIO_ALLOWED_TYPES = [2, 10]
+		self.BOUQUET_PREFIX = "userbouquet.JoyneScan."
+		self.bouquetsIndexFilename = "bouquets.tv"
+		self.bouquetFilename = self.BOUQUET_PREFIX + self.config.provider.value + ".tv"
+		self.bouquetName = PROVIDERS[self.config.provider.value]["name"] # already translated
+		
+		self.namespace_complete = not (config.usage.subnetwork.value if hasattr(config.usage, "subnetwork") else True) # config.usage.subnetwork not available in all distros/images
+		self.onFirstExecBegin.append(self.firstExec)
+
+	def firstExec(self):
+		from Screens.Standby import inStandby
+
+		self.progresscount = 8
+		self.progresscurrent = 1
+		
+		if not inStandby:
+			self["action"].setText(_("Reading current settings..."))
+			self["progress_text"].range = self.progresscount
+			self["progress_text"].value = self.progresscurrent
+			self["progress"].setRange((0, self.progresscount))
+			self["progress"].setValue(self.progresscurrent)
+		self.transponders_dict = LamedbReader().readLamedb(self.path)
+		self.progresscurrent += 1
+			if not inStandby:
+				self["action"].setText(_("Current settings read..."))
+				self["progress_text"].value = self.progresscurrent
+				self["progress"].setValue(self.progresscurrent)
+
+		self.timer = eTimer()
+		self.timer.callback.append(self.readStreams)
+		self.timer.start(100, 1)
+
+	def readStreams(self):
 		pass
+
+	def showError(self, message):
+		from Screens.Standby import inStandby
+		self.releaseFrontend()
+		self.restartService()
+		if not inStandby:
+			question = self.session.open(MessageBox, message, MessageBox.TYPE_ERROR)
+			question.setTitle(self.title)
+		self.close()
+
+	def keyCancel(self):
+		self.releaseFrontend()
+		self.restartService()
+		self.close()
+
+	def releaseFrontend(self):
+		if hasattr(self, 'frontend'):
+			del self.frontend
+		if hasattr(self, 'rawchannel'):
+			del self.rawchannel
+		self.frontend = None
+		self.rawchannel = None
+
+	def restartService(self):
+		if self.postScanService:
+			self.session.nav.playService(self.postScanService)
+			self.postScanService = None
+	
+	def isRotorSat(self, slot, orb_pos):
+		rotorSatsForNim = nimmanager.getRotorSatListForNim(slot)
+		if len(rotorSatsForNim) > 0:
+			for sat in rotorSatsForNim:
+				if sat[0] == orb_pos:
+					return True
+		return False
+
 
 
 class JoyneScan_Setup(ConfigListScreen, Screen):
@@ -63,7 +189,6 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 		self.list = []
 
 		self.list.append(getConfigListEntry(_("Provider"), self.config.provider, _('Select the provider you wish to scan.')))
-		self.list.append(getConfigListEntry(_("Clear before scan"), self.config.clearallservices, _('If you select "yes" stored channels at the same orbital position will be deleted before starting the current search. Note: if you are scanning more than one provider this must be set to "no".')))
 		self.list.append(getConfigListEntry(_("Show in extensions menu"), self.config.extensions, _('When enabled, this allows you start a Joyne update from the extensions list.')))
 
 		self.list.append(getConfigListEntry(_("Scheduled fetch"), self.config.schedule, _("Set up a task scheduler to periodically update Joyne data.")))

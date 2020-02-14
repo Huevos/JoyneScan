@@ -13,7 +13,6 @@ from providers import PROVIDERS
 
 config.plugins.joynescan = ConfigSubsection()
 config.plugins.joynescan.provider = ConfigSelection(default = "Joyne_NL", choices = [(x, PROVIDERS[x]["name"]) for x in sorted(PROVIDERS.keys())])
-config.plugins.joynescan.clearallservices = ConfigYesNo(default = False)
 config.plugins.joynescan.extensions = ConfigYesNo(default = False)
 
 # start: joynescan.schedule
