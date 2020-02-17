@@ -27,11 +27,12 @@ class JoyneScan(Screen): # the downloader
 	skin = downloadBar()
 	
 	def __init__(self, session, args = None):
+		self.config = config.plugins.joynescan
 		self.debugName = "JoyneScan"
+		self.extra_debug = self.config.extra_debug.value
 		self.screentitle = _("Joyne Scan")
 		print "[%s][__init__] Starting..." % (self.debugName,)
 		print "[%s][__init__] args" % (self.debugName,), args
-		self.config = config.plugins.joynescan
 		self.session = session
 		Screen.__init__(self, session)
 		Screen.setTitle(self, self.screentitle)
@@ -81,6 +82,8 @@ class JoyneScan(Screen): # the downloader
 		self.bouquetsIndexFilename = "bouquets.tv"
 		self.bouquetFilename = self.BOUQUET_PREFIX + self.config.provider.value + ".tv"
 		self.bouquetName = PROVIDERS[self.config.provider.value]["name"] # already translated
+		self.currentAction = 0
+		self.actions = ["read NIT", "read BAT", "read SDTs"]
 		
 		self.namespace_complete = not (config.usage.subnetwork.value if hasattr(config.usage, "subnetwork") else True) # config.usage.subnetwork not available in all distros/images
 		self.onFirstExecBegin.append(self.firstExec)
@@ -198,6 +201,7 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 			self.list.append(getConfigListEntry(indent + _("Schedule wake from deep standby"), self.config.schedulewakefromdeep, _("If the receiver is in 'Deep Standby' when the schedule is due wake it up to run JoyneScan.")))
 			if self.config.schedulewakefromdeep.value:
 				self.list.append(getConfigListEntry(indent + _("Schedule return to deep standby"), self.config.scheduleshutdown, _("If the receiver was woken from 'Deep Standby' and is currently in 'Standby' and no recordings are in progress return it to 'Deep Standby' once the import has completed.")))
+		self.list.append(getConfigListEntry(_("Extra debug"), self.config.extra_debug, _("This feature is for development only. Requires debug logs to be enabled or enigma2 to be started in console mode (at debug level 4.")))
 
 		self["config"].list = self.list
 		self["config"].l.setList(self.list)

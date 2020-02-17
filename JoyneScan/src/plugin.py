@@ -29,6 +29,8 @@ for i in range(7):
 	config.plugins.joynescan.days[i] = ConfigEnableDisable(default = True)
 # end: joynescan.schedule
 
+config.plugins.joynescan.extra_debug = ConfigYesNo(default = False)
+
 
 def startdownload(session, **kwargs):
 	session.open(JoyneScan)
