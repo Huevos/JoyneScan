@@ -14,7 +14,7 @@ from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 
 from about import JoyneScan_About
-from dowloadbar import downloadBar
+from downloadbar import downloadBar
 from lamedbreader import LamedbReader
 from lamedbwriter import LamedbWriter
 from providers import PROVIDERS
@@ -23,18 +23,18 @@ from enigma import eTimer
 
 from time import localtime, time, strftime, mktime
 
-class JoyneScan(): # the downloader
+class JoyneScan(Screen): # the downloader
 	skin = downloadBar()
 	
 	def __init__(self, session, args = None):
 		self.debugName = "JoyneScan"
-		self.title = _("Joyne Scan")
+		self.screentitle = _("Joyne Scan")
 		print "[%s][__init__] Starting..." % (self.debugName,)
 		print "[%s][__init__] args" % (self.debugName,), args
 		self.config = config.plugins.joynescan
 		self.session = session
 		Screen.__init__(self, session)
-		Screen.setTitle(self, self.title)
+		Screen.setTitle(self, self.screentitle)
 
 		self["action"] = Label(_("Starting scanner"))
 		self["status"] = Label("")
@@ -99,10 +99,10 @@ class JoyneScan(): # the downloader
 			self["progress"].setValue(self.progresscurrent)
 		self.transponders_dict = LamedbReader().readLamedb(self.path)
 		self.progresscurrent += 1
-			if not inStandby:
-				self["action"].setText(_("Current settings read..."))
-				self["progress_text"].value = self.progresscurrent
-				self["progress"].setValue(self.progresscurrent)
+		if not inStandby:
+			self["action"].setText(_("Current settings read..."))
+			self["progress_text"].value = self.progresscurrent
+			self["progress"].setValue(self.progresscurrent)
 
 		self.timer = eTimer()
 		self.timer.callback.append(self.readStreams)
@@ -117,7 +117,7 @@ class JoyneScan(): # the downloader
 		self.restartService()
 		if not inStandby:
 			question = self.session.open(MessageBox, message, MessageBox.TYPE_ERROR)
-			question.setTitle(self.title)
+			question.setTitle(self.screentitle)
 		self.close()
 
 	def keyCancel(self):
@@ -230,7 +230,7 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 
 	def startDownload(self):
 		print "[JoyneScan] startDownload"
-		#self.session.openWithCallback(self.joynescanCallback, JoyneScan, {})
+		self.session.openWithCallback(self.joynescanCallback, JoyneScan, {})
 
 	def joynescanCallback(self):
 		pass
