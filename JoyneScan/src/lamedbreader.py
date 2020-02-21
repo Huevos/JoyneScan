@@ -59,7 +59,7 @@ class LamedbReader():
 
 			second_row = second_row[2:].split(":")
 
-			if transponder["dvb_type"] == "dvbs" and len(second_row) != 7 and len(second_row) != 11 and len(second_row) != 14 and len(second_row) != 16:
+			if transponder["dvb_type"] == "dvbs" and len(second_row) not in (7, 11, 14, 16):
 				continue
 			if transponder["dvb_type"] == "dvbt" and len(second_row) != 12:
 				continue
@@ -80,10 +80,10 @@ class LamedbReader():
 				transponder["inversion"] = int(second_row[5])
 				transponder["flags"] = int(second_row[6])
 				if len(second_row) == 7: # DVB-S
-					transponder["modulation_system"] = 0
+					transponder["system"] = 0
 				else: # DVB-S2
-					transponder["modulation_system"] = int(second_row[7])
-					transponder["modulation_type"] = int(second_row[8])
+					transponder["system"] = int(second_row[7])
+					transponder["modulation"] = int(second_row[8])
 					transponder["roll_off"] = int(second_row[9])
 					transponder["pilot"] = int(second_row[10])
 					if len(second_row) > 13: # Multistream
@@ -110,10 +110,10 @@ class LamedbReader():
 				transponder["frequency"] = int(second_row[0])
 				transponder["symbol_rate"] = int(second_row[1])
 				transponder["inversion"] = int(second_row[2])
-				transponder["modulation_type"] = int(second_row[3])
+				transponder["modulation"] = int(second_row[3])
 				transponder["fec_inner"] = int(second_row[4])
 				transponder["flags"] = int(second_row[5])
-				transponder["modulation_system"] = int(second_row[6])
+				transponder["system"] = int(second_row[6])
 
 			key = "%x:%x:%x" % (transponder["namespace"], transponder["transport_stream_id"], transponder["original_network_id"])
 			transponders[key] = transponder
@@ -131,7 +131,7 @@ class LamedbReader():
 			service_provider = srv_blocks[(i*3)+2].strip()
 			service_reference = service_reference.split(":")
 
-			if len(service_reference) != 6 and len(service_reference) != 7:
+			if len(service_reference) not in (6, 7):
 				continue
 
 			service = {}
@@ -143,7 +143,7 @@ class LamedbReader():
 			service["original_network_id"] = int(service_reference[3], 16)
 			service["service_type"] = int(service_reference[4])
 			service["flags"] = int(service_reference[5])
-			if len(service_reference) == 7:
+			if len(service_reference) == 7 and int(service_reference[6], 16) != 0:
 				service["ATSC_source_id"] = int(service_reference[6], 16)
 
 			key = "%x:%x:%x" % (service["namespace"], service["transport_stream_id"], service["original_network_id"])
@@ -180,7 +180,7 @@ class LamedbReader():
 
 				second_part = second_part[2:].split(":")
 
-				if transponder["dvb_type"] == "dvbs" and len(second_part) != 7 and len(second_part) != 11:
+				if transponder["dvb_type"] == "dvbs" and len(second_part) not in (7, 11):
 					continue
 				if transponder["dvb_type"] == "dvbt" and len(second_part) != 12:
 					continue
@@ -201,10 +201,10 @@ class LamedbReader():
 					transponder["inversion"] = int(second_part[5])
 					transponder["flags"] = int(second_part[6])
 					if len(second_part) == 7: # DVB-S
-						transponder["modulation_system"] = 0
+						transponder["system"] = 0
 					else: # DVB-S2
-						transponder["modulation_system"] = int(second_part[7])
-						transponder["modulation_type"] = int(second_part[8])
+						transponder["system"] = int(second_part[7])
+						transponder["modulation"] = int(second_part[8])
 						transponder["roll_off"] = int(second_part[9])
 						transponder["pilot"] = int(second_part[10])
 						for part in line.strip().split(",")[2:]: # Multistream/T2MI
@@ -232,10 +232,10 @@ class LamedbReader():
 					transponder["frequency"] = int(second_part[0])
 					transponder["symbol_rate"] = int(second_part[1])
 					transponder["inversion"] = int(second_part[2])
-					transponder["modulation_type"] = int(second_part[3])
+					transponder["modulation"] = int(second_part[3])
 					transponder["fec_inner"] = int(second_part[4])
 					transponder["flags"] = int(second_part[5])
-					transponder["modulation_system"] = int(second_part[6])
+					transponder["system"] = int(second_part[6])
 
 				key = "%x:%x:%x" % (transponder["namespace"], transponder["transport_stream_id"], transponder["original_network_id"])
 				transponders[key] = transponder
@@ -260,7 +260,7 @@ class LamedbReader():
 				service["original_network_id"] = int(service_reference[3], 16)
 				service["service_type"] = int(service_reference[4])
 				service["flags"] = int(service_reference[5])
-				if len(service_reference) == 7:
+				if len(service_reference) == 7 and int(service_reference[6], 16) != 0:
 					service["ATSC_source_id"] = int(service_reference[6], 16)
 
 				key = "%x:%x:%x" % (service["namespace"], service["transport_stream_id"], service["original_network_id"])

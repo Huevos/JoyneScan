@@ -30,7 +30,7 @@ class LamedbWriter():
 				else:
 					orbital_position = transponder["orbital_position"]
 
-				if transponder["modulation_system"] == 0: # DVB-S
+				if transponder["system"] == 0: # DVB-S
 					lamedblist.append("\ts %d:%d:%d:%d:%d:%d:%d\n" %
 						(transponder["frequency"],
 						transponder["symbol_rate"],
@@ -67,8 +67,8 @@ class LamedbWriter():
 						orbital_position,
 						transponder["inversion"],
 						transponder["flags"],
-						transponder["modulation_system"],
-						transponder["modulation_type"],
+						transponder["system"],
+						transponder["modulation"],
 						transponder["roll_off"],
 						transponder["pilot"],
 						multistream,
@@ -92,10 +92,10 @@ class LamedbWriter():
 					(transponder["frequency"],
 					transponder["symbol_rate"],
 					transponder["inversion"],
-					transponder["modulation_type"],
+					transponder["modulation"],
 					transponder["fec_inner"],
 					transponder["flags"],
-					transponder["modulation_system"]))
+					transponder["system"]))
 			lamedblist.append("/\n")
 			transponders_count += 1
 
@@ -108,23 +108,14 @@ class LamedbWriter():
 			for key2 in transponder["services"].keys():
 				service = transponder["services"][key2]
 
-				if "ATSC_source_id" in service:
-					lamedblist.append("%04x:%08x:%04x:%04x:%d:%d:%x\n" %
-						(service["service_id"],
-						service["namespace"],
-						service["transport_stream_id"],
-						service["original_network_id"],
-						service["service_type"],
-						service["flags"],
-						service["ATSC_source_id"]))
-				else:
-					lamedblist.append("%04x:%08x:%04x:%04x:%d:%d\n" %
-						(service["service_id"],
-						service["namespace"],
-						service["transport_stream_id"],
-						service["original_network_id"],
-						service["service_type"],
-						service["flags"]))
+				lamedblist.append("%04x:%08x:%04x:%04x:%d:%d%s\n" %
+					(service["service_id"],
+					service["namespace"],
+					service["transport_stream_id"],
+					service["original_network_id"],
+					service["service_type"],
+					service["flags"],
+					":%x" % service["ATSC_source_id"] if "ATSC_source_id" in service else ""))
 
 				control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
 				control_char_re = re.compile('[%s]' % re.escape(control_chars))
@@ -188,7 +179,7 @@ class LamedbWriter():
 				else:
 					orbital_position = transponder["orbital_position"]
 
-				if transponder["modulation_system"] == 0: # DVB-S
+				if transponder["system"] == 0: # DVB-S
 					lamedblist.append("s:%d:%d:%d:%d:%d:%d:%d\n" %
 						(transponder["frequency"],
 						transponder["symbol_rate"],
@@ -222,8 +213,8 @@ class LamedbWriter():
 						orbital_position,
 						transponder["inversion"],
 						transponder["flags"],
-						transponder["modulation_system"],
-						transponder["modulation_type"],
+						transponder["system"],
+						transponder["modulation"],
 						transponder["roll_off"],
 						transponder["pilot"],
 						multistream,
@@ -247,10 +238,10 @@ class LamedbWriter():
 					(transponder["frequency"],
 					transponder["symbol_rate"],
 					transponder["inversion"],
-					transponder["modulation_type"],
+					transponder["modulation"],
 					transponder["fec_inner"],
 					transponder["flags"],
-					transponder["modulation_system"]))
+					transponder["system"]))
 			transponders_count += 1
 
 		for key in transponders.keys():
@@ -261,17 +252,14 @@ class LamedbWriter():
 			for key2 in transponder["services"].keys():
 				service = transponder["services"][key2]
 
-				if "ATSC_source_id" not in service:
-					service["ATSC_source_id"] = 0
-
-				lamedblist.append("s:%04x:%08x:%04x:%04x:%d:%d:%x," %
+				lamedblist.append("s:%04x:%08x:%04x:%04x:%d:%d%s," %
 					(service["service_id"],
 					service["namespace"],
 					service["transport_stream_id"],
 					service["original_network_id"],
 					service["service_type"],
 					service["flags"],
-					service["ATSC_source_id"]))
+					":%x" % service["ATSC_source_id"] if "ATSC_source_id" in service else ":0"))
 
 				control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
 				control_char_re = re.compile('[%s]' % re.escape(control_chars))

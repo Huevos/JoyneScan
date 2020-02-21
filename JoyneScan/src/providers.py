@@ -1,36 +1,37 @@
 # for localized messages
 from . import _
+from enigma import eDVBFrontendParametersSatellite
 
 PROVIDERS = {
 	"Joyne_BE": {
 		"name": _("Joyne BE"),
 		"transponder": {
-			"frequency": 11727,
-			"symbol_rate": 30000,
-			"polarization": 1,
-			"fec_inner": 3,
+			"frequency": 11727000,
+			"symbol_rate": 30000000,
+			"polarization": eDVBFrontendParametersSatellite.Polarisation_Vertical,
+			"fec_inner": eDVBFrontendParametersSatellite.FEC_3_4,
 			"orbital_position": 90,
-			"system": 1,
-			"modulation": 2,
-			"roll_off": 2,
-			"onid": 0x009e,
-			"tsid": 0xc35a,},
+			"system": eDVBFrontendParametersSatellite.System_DVB_S2,
+			"modulation": eDVBFrontendParametersSatellite.Modulation_8PSK,
+			"roll_off": eDVBFrontendParametersSatellite.RollOff_alpha_0_20,
+			"original_network_id": 0x009e,
+			"transport_stream_id": 0xc35a,},
 		"bat": {
 			"descriptor": 0x83,
 			"BouquetID": 0x1,},},
 	"Joyne_NL": {
 		"name": _("Joyne NL"), 
 		"transponder": {
-			"frequency": 11747,
-			"symbol_rate": 30000,
-			"polarization": 0,
-			"fec_inner": 3,
+			"frequency": 11747000,
+			"symbol_rate": 30000000,
+			"polarization": eDVBFrontendParametersSatellite.Polarisation_Horizontal,
+			"fec_inner": eDVBFrontendParametersSatellite.FEC_3_4,
 			"orbital_position": 90,
-			"system": 1,
-			"modulation": 2,
-			"roll_off": 2,
-			"onid": 0x009e,
-			"tsid": 0xc364,},
+			"system": eDVBFrontendParametersSatellite.System_DVB_S2,
+			"modulation": eDVBFrontendParametersSatellite.Modulation_8PSK,
+			"roll_off": eDVBFrontendParametersSatellite.RollOff_alpha_0_20,
+			"original_network_id": 0x009e,
+			"transport_stream_id": 0xc364,},
 		"bat": {
 			"descriptor": 0x83,
 			"BouquetID": 0x1,},},}
