@@ -72,8 +72,6 @@ class JoyneScan(Screen): # the downloader
 		
 		self.path = "/etc/enigma2" # path to settings files
 
-
-
 		self.homeTransponder = PROVIDERS[self.config.provider.value]["transponder"]
 		self.bat = PROVIDERS[self.config.provider.value]["bat"]
 
@@ -361,7 +359,8 @@ class JoyneScan(Screen): # the downloader
 		fd = dvbreader.open(self.demuxer_device, sdt_pid, sdt_current_table_id, mask, self.current_slotid)
 		if fd < 0:
 			print "[%s][tsidOnidTest] Cannot open the demuxer_device '%s'" % (self.debugName, demuxer_device)
-			return None
+			self.showError(_('Cannot open the demuxer'))
+			return
 
 		timeout = datetime.datetime.now()
 		timeout += datetime.timedelta(0, tsidOnidTestTimeout)
@@ -404,7 +403,8 @@ class JoyneScan(Screen): # the downloader
 			print "[%s] nit_current_table_id" % self.debugName, str(self.nit_current_table_id)
 			print "[%s] mask", str(mask)
 			print "[%s] current_slotid" % self.debugName, str(self.current_slotid)
-			return None
+			self.showError(_('Cannot open the demuxer'))
+			return
 
 		nit_current_section_version = -1
 		nit_current_section_network_id = -1
@@ -513,8 +513,68 @@ class JoyneScan(Screen): # the downloader
 	def readBAT(self):
 		print "[%s] Reading BAT..." % self.debugName
 		
+		fd = dvbreader.open(self.demuxer_device, self.bat_pid, self.bat_table_id, 0xff, self.current_slotid)
+		if fd < 0:
+			print "[%s] Cannot open the demuxer" % self.debugName
+			self.showError(_('Cannot open the demuxer'))
+			return
+
+		bat_section_version = -1
+		bat_sections_read = []
+		bat_sections_count = 0
+		bat_content = []
+
+		timeout = datetime.datetime.now()
+		timeout += datetime.timedelta(0, self.TIMEOUT_BAT)
+		tmp_TSID_ONID_list = []
+
+		while True:
+			if datetime.datetime.now() > timeout:
+				print "[%s] Timed out reading BAT" % self.debugName
+				break
+
+			section = dvbreader.read_bat(fd, self.bat_table_id)
+			if section is None:
+				sleep(0.1)	# no data.. so we wait a bit
+				continue
+
+			if self.extra_debug:
+				print "[%s] BAT raw section header" % self.debugName, section["header"]
+				print "[%s] BAT raw section content" % self.debugName, section["content"]
+
+			if section["header"]["table_id"] == self.bat_table_id:
+				if section["header"]["bouquet_id"] != self.bat["BouquetID"]:
+					continue
+
+				if section["header"]["version_number"] != bat_section_version:
+					bat_section_version = section["header"]["version_number"]
+					bat_sections_read = []
+					bat_content = []
+					bat_sections_count = section["header"]["last_section_number"] + 1
+
+				if section["header"]["section_number"] not in bat_sections_read:
+					bat_sections_read.append(section["header"]["section_number"])
+					bat_content += section["content"]
+
+					if len(bat_sections_read) == bat_sections_count:
+						break
+
+		dvbreader.close(fd)
+
+		self.processBAT([x for x in bat_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["bouquet"]])
+		
 		self.currentAction += 1
 		self.manager()
+
+	def processBAT(self, bat_content):
+		print "BAT read completed"
+
+		if self.extra_debug:
+			lcn_list = []
+			sid_list = []
+			tsid_list = []
+
+
 
 	def processServiceList(self, serviceList):
 		for service in serviceList:
