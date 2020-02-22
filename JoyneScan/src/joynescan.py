@@ -82,7 +82,7 @@ class JoyneScan(Screen): # the downloader
 		self.transponders_dict = {} # overwritten in firstExec
 		
 		self.services_dict = {}
-		self.tmp_services_dict = {}
+		self.service_list_dict = {}
 		self.namespace_dict = {} # to store namespace when sub network is enabled
 		self.logical_channel_number_dict = {}
 		self.ignore_visible_service_flag = False # make this a user override later if found necessary. Visible service flag is currently available in the NIT and BAT on Joyne home transponders
@@ -121,7 +121,7 @@ class JoyneScan(Screen): # the downloader
 	def firstExec(self):
 		from Screens.Standby import inStandby
 
-		self.progresscount = 8
+		self.progresscount = 4
 		self.progresscurrent = 1
 		
 		if not inStandby:
@@ -131,23 +131,30 @@ class JoyneScan(Screen): # the downloader
 			self["progress"].setRange((0, self.progresscount))
 			self["progress"].setValue(self.progresscurrent)
 		self.transponders_dict = LamedbReader().readLamedb(self.path)
-		self.progresscurrent += 1
 		if not inStandby:
 			self["action"].setText(_("Current settings read..."))
+
+		self.timer = eTimer()
+		self.timer.callback.append(self.manager)
+		self.timer.start(100, 1)
+
+	def manager(self):
+		from Screens.Standby import inStandby
+
+		self.progresscurrent += 1
+		if not inStandby:
 			self["progress_text"].value = self.progresscurrent
 			self["progress"].setValue(self.progresscurrent)
 
-		self.timer = eTimer()
-		self.timer.callback.append(self.readStreams)
-		self.timer.start(100, 1)
-
-	def readStreams(self):
 		if len(self.actions) > self.currentAction and self.actions[self.currentAction] == "read NIT":
 			self.transpondercurrent = self.homeTransponder
 			
 			self.timer = eTimer()
 			self.timer.callback.append(self.getFrontend)
 			self.timer.start(100, 1)
+
+		elif len(self.actions) > self.currentAction and self.actions[self.currentAction] == "read BAT":
+			self.readBAT() # we are already tuned so go direct to read BAT
 
 	def getFrontend(self):
 		from Screens.Standby import inStandby
@@ -169,7 +176,7 @@ class JoyneScan(Screen): # the downloader
 				self.showError(_("No compatible tuner found"))
 			else:
 				self.currentAction += 1
-				self.readStreams()
+				self.manager()
 			return
 
 		resmanager = eDVBResourceManager.getInstance()
@@ -310,7 +317,7 @@ class JoyneScan(Screen): # the downloader
 				self.showError(_("Tuning failed on %d") % self.transpondercurrent["frequency"]/1000)
 			else:
 				self.currentAction += 1
-				self.readStreams()
+				self.manager()
 			return
 
 		self.lockcounter += 1
@@ -320,7 +327,7 @@ class JoyneScan(Screen): # the downloader
 				self.showError(_("Timeout for tuner lock on %d") % self.transpondercurrent["frequency"]/1000)
 			else:
 				self.currentAction += 1
-				self.readStreams()
+				self.manager()
 			return
 		self.locktimer.start(100, 1)
 
@@ -331,7 +338,7 @@ class JoyneScan(Screen): # the downloader
 				self.showError(_("Could not acquire the correct tsid/onid on the home transponder."))
 			else:
 				self.currentAction += 1
-				self.readStreams()
+				self.manager()
 			return
 
 		if len(self.actions) > self.currentAction and self.actions[self.currentAction] in ("read NIT",):
@@ -490,8 +497,31 @@ class JoyneScan(Screen): # the downloader
 
 		#transponders_tmp = [x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["transponder"]]
 		transponders_count = self.processTransponders([x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["transponder"]])
-		self["status"].setText(_("nsponders found: %d") % transponders_count)
-		services_tmp = [x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["serviceList"]]
+		self["status"].setText(_("transponders found: %d") % transponders_count)
+		self.processServiceList([x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["serviceList"]])
+
+		if read_other_section and len(nit_other_completed):
+			print "[%s] Added/Updated %d transponders with network_id = 0x%x and other network_ids = %s" % (self.debugName, transponders_count, nit_current_section_network_id, ','.join(map(hex, nit_other_completed.keys())))
+		else:
+			print "[%s] Added/Updated %d transponders with network_id = 0x%x" % (self.debugName, transponders_count, nit_current_section_network_id)
+		
+		print "[%s] Reading NIT completed." % self.debugName
+
+		self.currentAction += 1
+		self.manager()
+
+	def readBAT(self):
+		print "[%s] Reading BAT..." % self.debugName
+		
+		self.currentAction += 1
+		self.manager()
+
+	def processServiceList(self, serviceList):
+		for service in serviceList:
+			key = "%x:%x:%x" % (service["transport_stream_id"], service["original_network_id"], service["service_id"])
+			self.service_list_dict[key] = service
+		if self.extra_debug:
+			print "[%s] Service list from NIT:" % self.debugName, self.service_list_dict
 
 	def processTransponders(self, transponderList):
 		transponders_count = 0
@@ -528,7 +558,26 @@ class JoyneScan(Screen): # the downloader
 				print "[%s] transponder" % self.debugName, transponder
 
 			self.SDTscanList.append(transponder)
-			self.actions.append("read SDTs") # Add new task to actions list to scan SDT of this transponder.
+			self.actions.append("read SDTs") # Adds new task to actions list to scan SDT of this transponder.
+
+		# Sort the transponder scan list. 
+		# step one: put the home transponder at the start of the list so no retune is required.
+		# step two: next scan other transponders on the same satellite as home transponder.
+		# step three: sort by orbital position so the dish doesn't need to keep going backwards and forwards unnecessarilly.
+		# step four: cosmetic, sort by frequency.
+		# Note: negation is needed because the sort is ascending and False has a lower value than True.
+		self.SDTscanList.sort(key=lambda transponder: (not (self.homeTransponder["orbital_position"] == transponder["orbital_position"] and self.homeTransponder["frequency"] == transponder["frequency"] and self.homeTransponder["polarization"] == transponder["polarization"]), not (self.homeTransponder["orbital_position"] == transponder["orbital_position"]), transponder["orbital_position"], transponder["frequency"]))
+		if self.extra_debug:
+			for tp in self.SDTscanList:
+				print "[%s] transponder scan list sorted, %s  %d %s" % (self.debugName, self.getOrbPosHuman(tp["orbital_position"]), tp["frequency"], self.polarization_dict.get(tp["polarization"], "UNKNOWN"))
+		self.progresscount += transponders_count
+
+		from Screens.Standby import inStandby
+		if not inStandby:
+			self["progress_text"].range = self.progresscount
+			self["progress_text"].value = self.progresscurrent
+			self["progress"].setRange((0, self.progresscount))
+			self["progress"].setValue(self.progresscurrent)
 
 		return transponders_count
 
@@ -550,6 +599,9 @@ class JoyneScan(Screen): # the downloader
 		for i in range(bits):
 			op += ((bcd >> 4*i) & 0x0F) * 10**i
 		return op and not transponder["west_east_flag"] and 3600 - op or op
+
+	def getOrbPosHuman(self, op):
+		return "%0.1f%s" % (((3600 - op)/10.0, "W") if op > 1800 else (op/10.0, "E"))
 
 	def setDemuxer(self):
 		self.demuxer_device = "/dev/dvb/adapter%d/demux%d" % (self.adapter, self.demuxer_id)
