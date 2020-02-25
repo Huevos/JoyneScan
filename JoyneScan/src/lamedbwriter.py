@@ -168,7 +168,7 @@ class LamedbWriter():
 			transponder = transponders[key]
 			if "services" not in transponder.keys() or len(transponder["services"]) < 1:
 				continue
-			lamedblist.append("t:%08x:%:%04x," %
+			lamedblist.append("t:%08x:%04x:%04x," %
 				(transponder["namespace"],
 				transponder["transport_stream_id"],
 				transponder["original_network_id"]))
@@ -288,7 +288,7 @@ class LamedbWriter():
 					lamedblist.append(",p:%s%s%s\n" % (provider_name, service_ca, service_flags))
 				services_count += 1
 
-		lamedb = codecs.open(path + "/lamedb", "w", "utf-8")
+		lamedb = codecs.open(path + "/lamedb5", "w", "utf-8")
 		lamedb.write(''.join(lamedblist))
 		lamedb.close()
 		del lamedblist

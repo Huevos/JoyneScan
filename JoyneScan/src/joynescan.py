@@ -20,7 +20,7 @@ from lamedbreader import LamedbReader
 from lamedbwriter import LamedbWriter
 from providers import PROVIDERS
 
-from enigma import eTimer, eDVBFrontendParametersSatellite, eDVBFrontendParameters, eDVBResourceManager
+from enigma import eTimer, eDVBDB, eDVBFrontendParametersSatellite, eDVBFrontendParameters, eDVBResourceManager
 
 from time import localtime, time, strftime, mktime, sleep
 import datetime
@@ -78,20 +78,28 @@ class JoyneScan(Screen): # the downloader
 		self.descriptors = {"transponder": 0x43, "serviceList": 0x41, "bouquet": self.bat["descriptor"]}
 
 		self.transponders_dict = {} # overwritten in firstExec
-		
 		self.services_dict = {}
 		self.service_list_dict = {}
-		self.namespace_dict = {} # to store namespace when sub network is enabled
+		self.tmp_service_list = [] # holds the service list from NIT (for cross referencing)
+		self.tmp_bat_content = [] # holds bat data waiting for processing
+		self.namespace_dict = {} # to store namespace when sub network is enabled.
+		# self.TSID_ONID_list. This can be created 2 ways.
+		# 1) self.TSID_ONID_list = self.namespace_dict.keys(), i.e. data is from the NIT. Or...
+		# 2) collect the same data from the BAT.
+		# We only need this anyway if we are reading "SDT other", which Joyne does not have.
+		# So this is here for future compatibility but not currently of any use for Joyne.
+		#self.TSID_ONID_list = []
 		self.logical_channel_number_dict = {}
 		self.ignore_visible_service_flag = False # make this a user override later if found necessary. Visible service flag is currently available in the NIT and BAT on Joyne home transponders
-		self.VIDEO_ALLOWED_TYPES = [1, 4, 5, 17, 22, 24, 25, 27, 135]
-		self.AUDIO_ALLOWED_TYPES = [2, 10]
+		self.VIDEO_ALLOWED_TYPES = [1, 4, 5, 17, 22, 24, 25, 27, 31, 135] # 4 and 5 NVOD, 17 MPEG-2 HD digital television service, 22 advanced codec SD digital television service, 24 advanced codec SD NVOD reference service, 27 advanced codec HD NVOD reference service, 31 ???, seems to be used on Astra 1 for some UHD/4K services 
+		self.AUDIO_ALLOWED_TYPES = [2, 10] # 10 advanced codec digital radio sound service
 		self.BOUQUET_PREFIX = "userbouquet.JoyneScan."
 		self.bouquetsIndexFilename = "bouquets.tv"
 		self.bouquetFilename = self.BOUQUET_PREFIX + self.config.provider.value + ".tv"
 		self.bouquetName = PROVIDERS[self.config.provider.value]["name"] # already translated
-		self.currentAction = 0
-		self.actions = ["read NIT", "read BAT",] # "readSDTs"]
+		self.index = -1
+		self.actionsList = ["read NIT", "read BAT",] # "read SDTs"]
+		self.actionsListOrigLength = len(self.actionsList)
 
 		self.adapter = 0 # fix me
 		
@@ -104,7 +112,8 @@ class JoyneScan(Screen): # the downloader
 		self.bat_pid = 0x11 # DVB default
 		self.bat_table_id = 0x4a # DVB default
 
-		self.SDTscanList = []
+		self.SDTscanList = [] # list of transponders we are going to scan the SDT of.
+		self.tmp_services_dict = {} # services found in SDTs of the scanned transponders
 
 		self.polarization_dict = {
 			eDVBFrontendParametersSatellite.Polarisation_Horizontal: "H", 
@@ -112,6 +121,9 @@ class JoyneScan(Screen): # the downloader
 			eDVBFrontendParametersSatellite.Polarisation_CircularLeft: "L", 
 			eDVBFrontendParametersSatellite.Polarisation_CircularRight: "R"
 		}
+
+		self.video_services = 0
+		self.radio_services = 0
 		
 		self.namespace_complete = not (config.usage.subnetwork.value if hasattr(config.usage, "subnetwork") else True) # config.usage.subnetwork not available in all distros/images
 		self.onFirstExecBegin.append(self.firstExec)
@@ -119,7 +131,7 @@ class JoyneScan(Screen): # the downloader
 	def firstExec(self):
 		from Screens.Standby import inStandby
 
-		self.progresscount = 4
+		self.progresscount = 5 # plus number of transponder to scan once we know this
 		self.progresscurrent = 1
 		
 		if not inStandby:
@@ -137,6 +149,7 @@ class JoyneScan(Screen): # the downloader
 		self.timer.start(100, 1)
 
 	def manager(self):
+		self.index += 1
 		from Screens.Standby import inStandby
 
 		self.progresscurrent += 1
@@ -144,20 +157,50 @@ class JoyneScan(Screen): # the downloader
 			self["progress_text"].value = self.progresscurrent
 			self["progress"].setValue(self.progresscurrent)
 
-		if len(self.actions) > self.currentAction and self.actions[self.currentAction] == "read NIT":
+		if len(self.actionsList) > self.index and self.actionsList[self.index] == "read NIT":
 			self.transpondercurrent = self.homeTransponder
 			
 			self.timer = eTimer()
 			self.timer.callback.append(self.getFrontend)
 			self.timer.start(100, 1)
 
-		elif len(self.actions) > self.currentAction and self.actions[self.currentAction] == "read BAT":
+		elif len(self.actionsList) > self.index and self.actionsList[self.index] == "read BAT":
 			self.readBAT() # we are already tuned so go direct to read BAT
+
+		elif len(self.actionsList) > self.index and self.actionsList[self.index] == "read SDTs":
+			if not inStandby:
+				self["status"].setText(_("Services: %d video - %d radio") % (self.video_services, self.radio_services))
+			self.transpondercurrent = self.SDTscanList[self.index - self.actionsListOrigLength]
+			if self.index == self.actionsListOrigLength: # this is the home transponder. We know it is the home transponder because that is first in the SDT scan list. And we are still tuned to it so go direct to read.
+				self.readSDT()
+			else:
+				self.timer = eTimer()
+				self.timer.callback.append(self.getFrontend)
+				self.timer.start(100, 1)
+		else:
+			if not inStandby:
+				self["action"].setText(_('Bouquets generation...'))
+				self["status"].setText(_("Services: %d video - %d radio") % (self.video_services, self.radio_services))
+			self.correctTsidErrors() # correct errors due to "broken" NIT on home transponder
+			self.processServiceList()
+			self.processBAT()
+			self.addTransponders()
+			self.addNamespaceToServices()
+			self.addLCNsToServices()
+			self.addServicesToTransponders()
+			self["actions"].setEnabled(False) # disable action map here so we can't abort half way through writing result to settings files
+			self.saveLamedb()
+			self.createBouquet()
+			self.scanComplete()
+			
+			#self["actions"].setEnabled(False) # disable action map here so we can't abort half way through writing result to settings files
+			
+				
 
 	def getFrontend(self):
 		from Screens.Standby import inStandby
 		if not inStandby:
-			self["action"].setText(_("Tuning %s on %s %s...") % (self.bouquetName, str(self.transpondercurrent["frequency"]/1000), self.polarization_dict.get(self.transpondercurrent["polarization"],"")))
+			self["action"].setText(_("Tune %s %s %s %s...") % (self.bouquetName, self.getOrbPosHuman(self.transpondercurrent["orbital_position"]), str(self.transpondercurrent["frequency"]/1000), self.polarization_dict.get(self.transpondercurrent["polarization"],"")))
 		print "[%s][getFrontend] searching for available tuner" % (self.debugName,)
 		nimList = []
 		for nim in nimmanager.nim_slots:
@@ -170,11 +213,7 @@ class JoyneScan(Screen): # the downloader
 
 		if len(nimList) == 0: # No nims found for this satellite
 			print "[%s][getFrontend] No compatible tuner found" % (self.debugName,)
-			if len(self.actions) > self.currentAction and self.actions[self.currentAction] in ("read NIT", "read BAT"):
-				self.showError(_("No compatible tuner found"))
-			else:
-				self.currentAction += 1
-				self.manager()
+			self.showError(_("No compatible tuner found"))
 			return
 
 		resmanager = eDVBResourceManager.getInstance()
@@ -267,8 +306,6 @@ class JoyneScan(Screen): # the downloader
 		self.selectedNIM = current_slotid  # Remember for downloading SI tables
 		
 		self["tuner_text"].setText(chr(ord('A') + current_slotid))
-
-		self.current_slotid = current_slotid
 		
 		self.frontend = self.rawchannel.getFrontend()
 		if not self.frontend:
@@ -301,7 +338,7 @@ class JoyneScan(Screen): # the downloader
 				print "[%s][checkTunerLock] TUNING" % self.debugName
 		elif self.dict["tuner_state"] == "LOCKED":
 			if not inStandby:
-				self["action"].setText(_("Reading %s on %s %s...") % (self.bouquetName, str(self.transpondercurrent["frequency"]/1000), self.polarization_dict.get(self.transpondercurrent["polarization"],"")))
+				self["action"].setText(_("Read %s %s %s %s...") % (self.bouquetName, self.getOrbPosHuman(self.transpondercurrent["orbital_position"]), str(self.transpondercurrent["frequency"]/1000), self.polarization_dict.get(self.transpondercurrent["polarization"],"")))
 				#self["status"].setText(_("???"))
 
 			self.readTransponderCounter = 0
@@ -311,52 +348,43 @@ class JoyneScan(Screen): # the downloader
 			return
 		elif self.dict["tuner_state"] in ("LOSTLOCK", "FAILED"):
 			print "[%s][checkTunerLock] TUNING FAILED" % self.debugName
-			if len(self.actions) > self.currentAction and self.actions[self.currentAction] in ("read NIT", "read BAT"):
-				self.showError(_("Tuning failed on %d") % self.transpondercurrent["frequency"]/1000)
-			else:
-				self.currentAction += 1
-				self.manager()
+			self.showError(_("Tuning failed on %s") % str(self.transpondercurrent["frequency"]/1000))
 			return
 
 		self.lockcounter += 1
 		if self.lockcounter > self.LOCK_TIMEOUT:
 			print "[%s][checkTunerLock] Timeout for tuner lock" % self.debugName
-			if len(self.actions) > self.currentAction and self.actions[self.currentAction] in ("read NIT", "read BAT"):
-				self.showError(_("Timeout for tuner lock on %d") % self.transpondercurrent["frequency"]/1000)
-			else:
-				self.currentAction += 1
-				self.manager()
+			self.showError(_("Timeout for tuner lock on %s") % str(self.transpondercurrent["frequency"]/1000))
 			return
 		self.locktimer.start(100, 1)
 
 	def readTransponder(self):
-		if self.motorised and not self.tsidOnidTest(self.transpondercurrent["original_network_id"], self.transpondercurrent["transport_stream_id"]):
+		# if setup is motorized and we are about to read the NIT, first let's make sure the dish is receiving from the correct satellite.
+		if self.motorised and self.actionsList[self.index] in ("read NIT",) and not self.tsidOnidTest(self.transpondercurrent["original_network_id"], self.transpondercurrent["transport_stream_id"]):
 			print "[%s][readTransponder] Could not acquire the correct tsid/onid on the home transponder." % self.debugName
-			if len(self.actions) > self.currentAction and self.actions[self.currentAction] in ("read NIT", "read BAT"):
-				self.showError(_("Could not acquire the correct tsid/onid on the home transponder."))
-			else:
-				self.currentAction += 1
-				self.manager()
+			self.showError(_("Could not acquire the correct tsid/onid on the home transponder."))
 			return
 
-		if len(self.actions) > self.currentAction and self.actions[self.currentAction] in ("read NIT",):
-			if self.readNIT():
-				pass
+		if self.actionsList[self.index] in ("read NIT",):
+			self.readNIT()
+		elif self.actionsList[self.index] in ("read SDTs",):
+			self.readSDT()
+		else: # readBAT does not follow this code path
+			print "[%s][readTransponder] Something went terribly wrong" % self.debugName
+			self.showError(_("Something went terribly wrong"))
 
 	def tsidOnidTest(self, onid=None, tsid=None):
 		# This just grabs the tsid and onid of the current transponder.
 		# Used to confirm motorised dishes have arrived at the correct satellite before starting the download.
 		print "[%s] tsid onid test..." % self.debugName
 
-		sdt_pid = 0x11
-		sdt_current_table_id = 0x42
 		mask = 0xff
 		tsidOnidTestTimeout = 90
 		passed_test = False
 		
 		self.setDemuxer()
 
-		fd = dvbreader.open(self.demuxer_device, sdt_pid, sdt_current_table_id, mask, self.current_slotid)
+		fd = dvbreader.open(self.demuxer_device, self.sdt_pid, self.sdt_current_table_id, mask, self.selectedNIM)
 		if fd < 0:
 			print "[%s][tsidOnidTest] Cannot open the demuxer_device '%s'" % (self.debugName, demuxer_device)
 			self.showError(_('Cannot open the demuxer'))
@@ -370,12 +398,12 @@ class JoyneScan(Screen): # the downloader
 				print "[%s][tsidOnidTest] Timed out checking tsid onid" % self.debugName
 				break
 
-			section = dvbreader.read_sdt(fd, sdt_current_table_id, 0x00)
+			section = dvbreader.read_sdt(fd, self.sdt_current_table_id, 0x00)
 			if section is None:
 				sleep(0.1)	# no data.. so we wait a bit
 				continue
 
-			if section["header"]["table_id"] == sdt_current_table_id:
+			if section["header"]["table_id"] == self.sdt_current_table_id:
 				passed_test = (onid is None or onid == section["header"]["original_network_id"]) and (tsid is None or tsid == section["header"]["transport_stream_id"])
 				print "[%s][tsidOnidTest] tsid: %d, onid: %d" % (self.debugName, section["header"]["transport_stream_id"], section["header"]["original_network_id"])
 				if passed_test:
@@ -395,14 +423,14 @@ class JoyneScan(Screen): # the downloader
 
 		self.setDemuxer()
 
-		fd = dvbreader.open(self.demuxer_device, self.nit_pid, self.nit_current_table_id, mask, self.current_slotid)
+		fd = dvbreader.open(self.demuxer_device, self.nit_pid, self.nit_current_table_id, mask, self.selectedNIM)
 		if fd < 0:
 			print "[%s] Cannot open the demuxer" % self.debugName
 			print "[%s] demuxer_device" % self.debugName, str(self.demuxer_device)
 			print "[%s] nit_pid" % self.debugName, str(self.nit_pid)
 			print "[%s] nit_current_table_id" % self.debugName, str(self.nit_current_table_id)
 			print "[%s] mask", str(mask)
-			print "[%s] current_slotid" % self.debugName, str(self.current_slotid)
+			print "[%s] current_slotid" % self.debugName, str(self.selectedNIM)
 			self.showError(_('Cannot open the demuxer'))
 			return
 
@@ -497,8 +525,13 @@ class JoyneScan(Screen): # the downloader
 
 		#transponders_tmp = [x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["transponder"]]
 		transponders_count = self.processTransponders([x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["transponder"]])
-		self["status"].setText(_("transponders found: %d") % transponders_count)
-		self.processServiceList([x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["serviceList"]])
+		
+		from Screens.Standby import inStandby
+		if not inStandby:
+			self["status"].setText(_("transponders found: %d") % transponders_count)
+
+		# self.processServiceList([x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["serviceList"]])
+		self.tmp_service_list = [x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["serviceList"]]
 
 		if read_other_section and len(nit_other_completed):
 			print "[%s] Added/Updated %d transponders with network_id = 0x%x and other network_ids = %s" % (self.debugName, transponders_count, nit_current_section_network_id, ','.join(map(hex, nit_other_completed.keys())))
@@ -507,13 +540,14 @@ class JoyneScan(Screen): # the downloader
 		
 		print "[%s] Reading NIT completed." % self.debugName
 
-		self.currentAction += 1
 		self.manager()
 
 	def readBAT(self):
 		print "[%s] Reading BAT..." % self.debugName
 		
-		fd = dvbreader.open(self.demuxer_device, self.bat_pid, self.bat_table_id, 0xff, self.current_slotid)
+		self.setDemuxer()
+
+		fd = dvbreader.open(self.demuxer_device, self.bat_pid, self.bat_table_id, 0xff, self.selectedNIM)
 		if fd < 0:
 			print "[%s] Cannot open the demuxer" % self.debugName
 			self.showError(_('Cannot open the demuxer'))
@@ -526,7 +560,6 @@ class JoyneScan(Screen): # the downloader
 
 		timeout = datetime.datetime.now()
 		timeout += datetime.timedelta(0, self.TIMEOUT_BAT)
-		tmp_TSID_ONID_list = []
 
 		while True:
 			if datetime.datetime.now() > timeout:
@@ -561,31 +594,164 @@ class JoyneScan(Screen): # the downloader
 
 		dvbreader.close(fd)
 
-		self.processBAT([x for x in bat_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["bouquet"]])
+		#self.processBAT([x for x in bat_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["bouquet"]])
+		self.tmp_bat_content = [x for x in bat_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["bouquet"]]
 		
-		self.currentAction += 1
+		print "[%s] Reading BAT completed." % self.debugName
+
 		self.manager()
 
-	def processBAT(self, bat_content):
-		print "BAT read completed"
+	def readSDT(self):
+		print "[%s] Reading SDTs..." % self.debugName
 
+		mask = 0xff # only read SDT actual, not SDT other.
+
+		sdt_current_version_number = -1
+		sdt_current_sections_read = []
+		sdt_current_sections_count = 0
+		sdt_current_content = []
+		sdt_current_completed = False
+
+		self.setDemuxer()
+
+		fd = dvbreader.open(self.demuxer_device, self.sdt_pid, self.sdt_current_table_id, mask, self.selectedNIM)
+		if fd < 0:
+			print "[%s][readSDT] Cannot open the demuxer" % self.debugName
+			self.showError(_('Cannot open the demuxer'))
+			return
+
+		timeout = datetime.datetime.now()
+		timeout += datetime.timedelta(0, self.TIMEOUT_SDT)
+
+		while True:
+			if datetime.datetime.now() > timeout:
+				print "[%s][readSDT] Timed out" % self.debugName
+				break
+
+			section = dvbreader.read_sdt(fd, self.sdt_current_table_id, 0x00)
+			if section is None:
+				sleep(0.1)	# no data.. so we wait a bit
+				continue
+
+			# Check the ONID is correct... maybe we are receiving the "wrong" satellite or dish is still moving.
+			if self.transpondercurrent["original_network_id"] != section["header"]["original_network_id"]:
+				continue
+
+			# Check for ONID/TSID miss match between the transport stream we have tuned and the one we are supposed to tune.
+			# A miss match happens when the NIT table on the home transponder has broken data.
+			# If there is a miss match correct it now, before the data is "used in anger".
+			if self.transpondercurrent["transport_stream_id"] != section["header"]["transport_stream_id"]:
+				print "[%s] ONID/TSID mismatch. Supposed to be reading: 0x%x/0x%x, Currently reading: 0x%x/0x%x. Will accept current data as  authoritative." % (self.debugName, self.transpondercurrent["original_network_id"], self.transpondercurrent["transport_stream_id"], section["header"]["original_network_id"], section["header"]["transport_stream_id"])
+				self.transpondercurrent["real_transport_stream_id"] = section["header"]["transport_stream_id"]
+
+			if section["header"]["table_id"] == self.sdt_current_table_id and not sdt_current_completed:
+				if section["header"]["version_number"] != sdt_current_version_number:
+					sdt_current_version_number = section["header"]["version_number"]
+					sdt_current_sections_read = []
+					sdt_current_sections_count = section["header"]["last_section_number"] + 1
+					sdt_current_content = []
+
+				if section["header"]["section_number"] not in sdt_current_sections_read:
+					sdt_current_sections_read.append(section["header"]["section_number"])
+					sdt_current_content += section["content"]
+
+					if len(sdt_current_sections_read) == sdt_current_sections_count:
+						sdt_current_completed = True
+
+			if sdt_current_completed:
+				break
+
+		dvbreader.close(fd)
+
+		if not sdt_current_content: # if no channels in SDT just skip the transponder read. No need to abort the complete scan.
+			print "[%s][readSDT] no services found on transponder" % self.debugName
+			self.manager()
+			return
+
+		for i in range(len(sdt_current_content)):
+			service = sdt_current_content[i]
+
+			if service["service_type"] not in self.VIDEO_ALLOWED_TYPES and service["service_type"] not in self.AUDIO_ALLOWED_TYPES:
+				continue
+
+			service["flags"] = 0
+
+			if service["service_type"] in self.VIDEO_ALLOWED_TYPES:
+				self.video_services += 1
+			else:
+				self.radio_services += 1
+
+			servicekey = "%x:%x:%x" % (service["transport_stream_id"], service["original_network_id"], service["service_id"])
+			self.tmp_services_dict[servicekey] = service
+
+		self.manager()
+
+	def processBAT(self):
 		if self.extra_debug:
 			lcn_list = []
 			sid_list = []
 			tsid_list = []
 
+		for service in self.tmp_bat_content:
+			if not self.ignore_visible_service_flag and "visible_service_flag" in service and service["visible_service_flag"] == 0:
+				continue
 
+			key = "%x:%x:%x" % (service["transport_stream_id"], service["original_network_id"], service["service_id"])
+			self.logical_channel_number_dict[key] = service
 
-	def processServiceList(self, serviceList):
-		for service in serviceList:
+			if self.extra_debug:
+				print "[%s] LCN entry" % self.debugName, key, service
+				sid_list.append(service["service_id"])
+				lcn_list.append(service["logical_channel_number"])
+				if service["transport_stream_id"] not in tsid_list:
+					tsid_list.append(service["transport_stream_id"])
+
+		if self.extra_debug:
+			print "[%s] TSID list from BAT" % self.debugName, sorted(tsid_list)
+			print "[%s] SID list from BAT" % self.debugName, sorted(sid_list)
+			print "[%s] LCN list from BAT" % self.debugName, sorted(lcn_list)
+
+	def correctTsidErrors(self):
+		# I wish this was not necessary but SI tables contain errors
+		errors_dict = {}
+		tmp_service_list = []
+		SDTscanList = []
+		tmp_bat_content = []
+		for tp in self.SDTscanList:
+			if "real_transport_stream_id" in tp:
+				key = "%x:%x" % (tp["transport_stream_id"], tp["original_network_id"])
+				errors_dict[key] = tp["real_transport_stream_id"]
+				tp["transport_stream_id"] = tp["real_transport_stream_id"]
+				del tp["real_transport_stream_id"]
+			SDTscanList.append(tp)
+		self.SDTscanList = SDTscanList
+		if self.extra_debug:
+			print "[%s] errors_dict" % self.debugName, errors_dict
+		for service in self.tmp_service_list:
+			key = "%x:%x" % (service["transport_stream_id"], service["original_network_id"])
+			if key in errors_dict:
+				service["transport_stream_id"] = errors_dict[key]
+			tmp_service_list.append(service)
+		self.tmp_service_list = tmp_service_list
+		for service in self.tmp_bat_content:
+			key = "%x:%x" % (service["transport_stream_id"], service["original_network_id"])
+			if key in errors_dict:
+				service["transport_stream_id"] = errors_dict[key]
+			tmp_bat_content.append(service)
+		self.tmp_bat_content = tmp_bat_content
+
+				
+	def processServiceList(self):
+		for service in self.tmp_service_list:
 			key = "%x:%x:%x" % (service["transport_stream_id"], service["original_network_id"], service["service_id"])
 			self.service_list_dict[key] = service
 		if self.extra_debug:
-			print "[%s] Service list from NIT:" % self.debugName, self.service_list_dict
+			print "[%s] Service list" % self.debugName, self.service_list_dict
 
 	def processTransponders(self, transponderList):
 		transponders_count = 0
 		for transponder in transponderList:
+			transponder["dvb_type"] = "dvbs" # so we know how to format it
 			transponder["orbital_position"] = self.getOrbPosFromBCD(transponder)
 			if not nimmanager.getNimListForSat(transponder["orbital_position"]): # Don't waste effort trying to scan or import from not configured satellites.
 				if self.extra_debug:
@@ -600,25 +766,28 @@ class JoyneScan(Screen): # the downloader
 				transponder["modulation"] = eDVBFrontendParametersSatellite.Modulation_QPSK
 			transponder["inversion"] = eDVBFrontendParametersSatellite.Inversion_Unknown
 			transponder["namespace"] = self.buildNamespace(transponder)
+			transponder["pilot"] = eDVBFrontendParametersSatellite.Pilot_Unknown
 
-			key = "%x:%x:%x" % (transponder["namespace"],
-				transponder["transport_stream_id"],
-				transponder["original_network_id"])
+#			This is all commented out because we are going to do it later due to a TSID miss match problem.
 
-			if key in self.transponders_dict:
-				transponder["services"] = self.transponders_dict[key]["services"]
-			self.transponders_dict[key] = transponder
+#			key = "%x:%x:%x" % (transponder["namespace"],
+#				transponder["transport_stream_id"],
+#				transponder["original_network_id"])
+
+#			if key in self.transponders_dict:
+#				transponder["services"] = self.transponders_dict[key]["services"]
+#			self.transponders_dict[key] = transponder
 			transponders_count += 1
 
-			namespace_key = "%x:%x" % (transponder["transport_stream_id"], transponder["original_network_id"])
-			if namespace_key not in self.namespace_dict:
-				self.namespace_dict[namespace_key] = transponder["namespace"]
+#			namespace_key = "%x:%x" % (transponder["transport_stream_id"], transponder["original_network_id"])
+#			if namespace_key not in self.namespace_dict:
+#				self.namespace_dict[namespace_key] = transponder["namespace"]
 
 			if self.extra_debug:
 				print "[%s] transponder" % self.debugName, transponder
 
 			self.SDTscanList.append(transponder)
-			self.actions.append("read SDTs") # Adds new task to actions list to scan SDT of this transponder.
+			self.actionsList.append("read SDTs") # Adds new task to actions list to scan SDT of this transponder.
 
 		# Sort the transponder scan list. 
 		# step one: put the home transponder at the start of the list so no retune is required.
@@ -641,12 +810,142 @@ class JoyneScan(Screen): # the downloader
 
 		return transponders_count
 
+	def addNamespaceToServices(self):
+		servicekeys = self.tmp_services_dict.keys()
+		for servicekey in servicekeys:
+			namespace_key = "%x:%x" % (self.tmp_services_dict[servicekey]["transport_stream_id"], self.tmp_services_dict[servicekey]["original_network_id"])
+			if namespace_key not in self.namespace_dict: # Can this really happen?
+				print "[%s] namespace_key not in namespace_dict" % self.debugName, self.tmp_services_dict[servicekey]
+				del self.tmp_services_dict[servicekey]
+				continue
+			self.tmp_services_dict[servicekey]["namespace"] = self.namespace_dict[namespace_key]
+
+	def addServicesToTransponders(self):
+		servicekeys = self.tmp_services_dict.keys()
+		for servicekey in servicekeys:
+			tpkey = "%x:%x:%x" % (self.tmp_services_dict[servicekey]["namespace"], self.tmp_services_dict[servicekey]["transport_stream_id"], self.tmp_services_dict[servicekey]["original_network_id"])
+			if tpkey not in self.transponders_dict: # Can this really happen?
+				print "[%s] tpkey not in self.transponders_dict" % self.debugName, self.tmp_services_dict[servicekey]
+				del self.tmp_services_dict[servicekey]
+				continue
+			if "services" not in self.transponders_dict[tpkey]: # create a services dict on the transponder if one does not currently exist
+				self.transponders_dict[tpkey]["services"] = {}
+			self.transponders_dict[tpkey]["services"][self.tmp_services_dict[servicekey]["service_id"]] = self.tmp_services_dict[servicekey]
+				
+	
+	def addLCNsToServices(self):
+		servicekeys = self.tmp_services_dict.keys()
+		for servicekey in servicekeys:
+			if servicekey in self.logical_channel_number_dict and self.logical_channel_number_dict[servicekey]["logical_channel_number"] not in self.services_dict:
+				self.tmp_services_dict[servicekey]["logical_channel_number"] = self.logical_channel_number_dict[servicekey]["logical_channel_number"] # adds LCN to the service
+				self.services_dict[self.logical_channel_number_dict[servicekey]["logical_channel_number"]] = self.tmp_services_dict[servicekey] # queues service for adding to bouquet file
+
+		if self.extra_debug:
+			for key in self.dict_sorter(self.tmp_services_dict, "service_name"): # prints service list in alphabetical order
+				print "[%s] service-alpha-order" % self.debugName, key, self.tmp_services_dict[key]
+	
+			for key in self.dict_sorter(self.tmp_services_dict, "logical_channel_number"): # prints service list in LCN order
+				print "[%s] serviceLCN-order" % self.debugName, key, self.tmp_services_dict[key]
+
+	def dict_sorter(self, in_dict, sort_by):
+		sort_list = [(x[0], x[1][sort_by]) for x in in_dict.items()]
+		return [x[0] for x in sorted(sort_list, key=lambda listItem: listItem[1])]
+
 	def buildNamespace(self, transponder):
 		namespace = transponder['orbital_position'] << 16
 		if self.namespace_complete or not self.isValidOnidTsid(transponder):
 			namespace |= ((transponder['frequency'] / 1000) & 0xFFFF) | ((transponder['polarization'] & 1) << 15)
 		return namespace
 
+	def addTransponders(self):
+		for transponder in self.SDTscanList:
+			key = "%x:%x:%x" % (transponder["namespace"],
+				transponder["transport_stream_id"],
+				transponder["original_network_id"])
+
+			if key in self.transponders_dict:
+				transponder["services"] = self.transponders_dict[key]["services"]
+			self.transponders_dict[key] = transponder
+
+			namespace_key = "%x:%x" % (transponder["transport_stream_id"], transponder["original_network_id"])
+			if namespace_key not in self.namespace_dict:
+				self.namespace_dict[namespace_key] = transponder["namespace"]
+				
+	def readBouquetIndex(self):
+		try:
+			return open(self.path + "/" + self.bouquetsIndexFilename, "r").read()
+		except Exception, e:
+			return ""
+
+	def writeBouquetIndex(self, bouquetIndexContent):
+		bouquets_tv_list = []
+		bouquets_tv_list.append("#NAME Bouquets (TV)\n")
+		bouquets_tv_list.append("#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET \"%s\" ORDER BY bouquet\n" % self.bouquetFilename)
+		if bouquetIndexContent:
+			lines = bouquetIndexContent.split("\n", 1)
+			if lines[0][:6] != "#NAME ":
+				bouquets_tv_list.append("%s\n" % lines[0])
+			if len(lines) > 1:
+				bouquets_tv_list.append("%s" % lines[1])
+
+		with open(self.path + "/" + self.bouquetsIndexFilename, "w") as bouquets_tv:
+			bouquets_tv.write(''.join(bouquets_tv_list))
+
+	def writeBouquet(self):
+		bouquet_list = []
+		bouquet_list.append("#NAME %s\n" % self.bouquetName)
+
+		numbers = range(1, 1001)
+		for number in numbers:
+			if number in self.services_dict:
+				bouquet_list.append(self.bouquetServiceLine(self.services_dict[number]))
+			else:
+				bouquet_list.append(self.spacer())
+
+		with open(self.path + "/" + self.bouquetFilename, "w") as bouquetFile:
+			bouquetFile.write(''.join(bouquet_list))
+
+	def bouquetServiceLine(self, service):
+		return "#SERVICE 1:0:%x:%x:%x:%x:%x:0:0:0:\n" % (
+			service["service_type"],
+			service["service_id"],
+			service["transport_stream_id"],
+			service["original_network_id"],
+			service["namespace"])
+
+	def spacer(self):
+		return "#SERVICE 1:320:0:0:0:0:0:0:0:0:\n#DESCRIPTION  \n"
+
+	def createBouquet(self):
+		bouquetIndexContent = self.readBouquetIndex()
+		if '"' + self.bouquetFilename + '"' not in bouquetIndexContent: # only edit the index if bouquet file is not present
+			self.writeBouquetIndex(bouquetIndexContent)
+		self.writeBouquet()
+
+	def saveLamedb(self):
+		writer = LamedbWriter()
+		writer.writeLamedb(self.path, self.transponders_dict)
+		writer.writeLamedb5(self.path, self.transponders_dict)
+
+	def scanComplete(self):
+		from Screens.Standby import inStandby
+		self.releaseFrontend()
+		self.restartService()
+
+		eDVBDB.getInstance().reloadServicelist()
+		eDVBDB.getInstance().reloadBouquets()
+		self.progresscurrent += 1
+		if not inStandby:
+			self["progress_text"].value = self.progresscurrent
+			self["progress"].setValue(self.progresscurrent)
+			self["action"].setText(_('Done'))
+			self["status"].setText(_("Services: %d video - %d radio") % (self.video_services, self.radio_services))
+
+		self.timer = eTimer()
+		self.timer.callback.append(self.close)
+		self.timer.start(2000, 1)
+		
+	
 	def isValidOnidTsid(self, transponder):
 		return transponder["original_network_id"] != 0x0 and transponder["original_network_id"] < 0xff00
 
