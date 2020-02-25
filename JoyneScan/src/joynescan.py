@@ -158,6 +158,8 @@ class JoyneScan(Screen): # the downloader
 			self["progress"].setValue(self.progresscurrent)
 
 		if len(self.actionsList) > self.index and self.actionsList[self.index] == "read NIT":
+			if not inStandby:
+				self["status"].setText(_("Seraching for Joyne transponders..."))
 			self.transpondercurrent = self.homeTransponder
 			
 			self.timer = eTimer()
