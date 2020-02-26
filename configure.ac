@@ -30,6 +30,7 @@ AC_CONFIG_FILES([
 Makefile
 JoyneScan/Makefile
 JoyneScan/lib/Makefile
+JoyneScan/po/Makefile
 JoyneScan/src/Makefile
 ])
 AC_OUTPUT
