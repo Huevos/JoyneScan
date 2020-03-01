@@ -779,8 +779,6 @@ class JoyneScan(Screen): # the downloader
 			transponder["symbol_rate"] = int(round(transponder["symbol_rate"]*100, -3))
 			if transponder["fec_inner"] != eDVBFrontendParametersSatellite.FEC_None and transponder["fec_inner"] > eDVBFrontendParametersSatellite.FEC_9_10:
 				transponder["fec_inner"] = eDVBFrontendParametersSatellite.FEC_Auto
-			if transponder["system"] == eDVBFrontendParametersSatellite.System_DVB_S and transponder["modulation"] == eDVBFrontendParametersSatellite.Modulation_8PSK:
-				transponder["modulation"] = eDVBFrontendParametersSatellite.Modulation_QPSK
 			transponder["inversion"] = eDVBFrontendParametersSatellite.Inversion_Unknown
 			transponder["namespace"] = self.buildNamespace(transponder)
 			transponder["pilot"] = eDVBFrontendParametersSatellite.Pilot_Unknown
