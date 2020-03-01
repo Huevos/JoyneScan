@@ -5,7 +5,7 @@ from enigma import eDVBFrontendParametersSatellite
 
 class LamedbWriter():
 
-	def writeLamedb(self, path, transponders):
+	def writeLamedb(self, path, transponders, filename="lamedb"):
 		print "[JoyneScan-LamedbWriter] Writing lamedb..."
 
 		transponders_count = 0
@@ -142,14 +142,14 @@ class LamedbWriter():
 				services_count += 1
 
 		lamedblist.append("end\nHave a lot of bugs!\n")
-		lamedb = codecs.open(path + "/lamedb", "w", "utf-8")
+		lamedb = codecs.open(path + "/" + filename, "w", "utf-8")
 		lamedb.write(''.join(lamedblist))
 		lamedb.close()
 		del lamedblist
 
 		print "[JoyneScan-LamedbWriter] Wrote %d transponders and %d services" % (transponders_count, services_count)
 
-	def writeLamedb5(self, path, transponders):
+	def writeLamedb5(self, path, transponders, filename="lamedb5"):
 		print "[JoyneScan-LamedbWriter] Writing lamedb V5..."
 
 		transponders_count = 0
@@ -288,7 +288,7 @@ class LamedbWriter():
 					lamedblist.append(",p:%s%s%s\n" % (provider_name, service_ca, service_flags))
 				services_count += 1
 
-		lamedb = codecs.open(path + "/lamedb5", "w", "utf-8")
+		lamedb = codecs.open(path + "/" + filename, "w", "utf-8")
 		lamedb.write(''.join(lamedblist))
 		lamedb.close()
 		del lamedblist
