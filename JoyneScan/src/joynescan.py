@@ -86,12 +86,6 @@ class JoyneScan(Screen): # the downloader
 		self.tmp_service_list = [] # holds the service list from NIT (for cross referencing)
 		self.tmp_bat_content = [] # holds bat data waiting for processing
 		self.namespace_dict = {} # to store namespace when sub network is enabled.
-		# self.TSID_ONID_list. This can be created 2 ways.
-		# 1) self.TSID_ONID_list = self.namespace_dict.keys(), i.e. data is from the NIT. Or...
-		# 2) collect the same data from the BAT.
-		# We only need this anyway if we are reading "SDT other", which Joyne does not have.
-		# So this is here for future compatibility but not currently of any use for Joyne.
-		#self.TSID_ONID_list = []
 		self.logical_channel_number_dict = {}
 		self.ignore_visible_service_flag = False # make this a user override later if found necessary. Visible service flag is currently available in the NIT and BAT on Joyne home transponders
 		self.VIDEO_ALLOWED_TYPES = [1, 4, 5, 17, 22, 24, 25, 27, 31, 135] # 4 and 5 NVOD, 17 MPEG-2 HD digital television service, 22 advanced codec SD digital television service, 24 advanced codec SD NVOD reference service, 27 advanced codec HD NVOD reference service, 31 ???, seems to be used on Astra 1 for some UHD/4K services
@@ -99,6 +93,7 @@ class JoyneScan(Screen): # the downloader
 		self.BOUQUET_PREFIX = "userbouquet.JoyneScan."
 		self.bouquetsIndexFilename = "bouquets.tv"
 		self.bouquetFilename = self.BOUQUET_PREFIX + self.config.provider.value + ".tv"
+		self.lastScannnedBouquetFilename = "userbouquet.LastScanned.tv"
 		self.bouquetName = PROVIDERS[self.config.provider.value]["name"] # already translated
 		self.index = -1
 		self.actionsList = ["read NIT", "read BAT",] # "read SDTs"]
@@ -203,10 +198,6 @@ class JoyneScan(Screen): # the downloader
 			self.saveLamedb()
 			self.createBouquet()
 			self.scanComplete()
-
-			#self["actions"].setEnabled(False) # disable action map here so we can't abort half way through writing result to settings files
-
-
 
 	def getFrontend(self):
 		from Screens.Standby import inStandby
@@ -352,7 +343,6 @@ class JoyneScan(Screen): # the downloader
 		elif self.dict["tuner_state"] == "LOCKED":
 			if not inStandby:
 				self["action"].setText(_("Read %s %s %s %s...") % (self.bouquetName, self.getOrbPosHuman(self.transpondercurrent["orbital_position"]), str(self.transpondercurrent["frequency"]/1000), self.polarization_dict.get(self.transpondercurrent["polarization"],"")))
-				#self["status"].setText(_("???"))
 
 			self.readTransponderCounter = 0
 			self.readTranspondertimer = eTimer()
@@ -918,8 +908,8 @@ class JoyneScan(Screen): # the downloader
 					bouquets_tv_list.append("%s" % lines[1])
 			newBouquetIndexContent = ''.join(bouquets_tv_list)
 				
-		if '"userbouquet.LastScanned.tv"' not in bouquetIndexContent: # check if LasScanned bouquet is present in the index
-			newBouquetIndexContent += "#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET \"userbouquet.LastScanned.tv\" ORDER BY bouquet\n"
+		if '"' + self.lastScannnedBouquetFilename + '"' not in bouquetIndexContent: # check if LasScanned bouquet is present in the index
+			newBouquetIndexContent += "#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET \"%s\" ORDER BY bouquet\n" % self.lastScannnedBouquetFilename
 				
 		if bouquetIndexContent != newBouquetIndexContent:
 			with open(self.path + "/" + self.bouquetsIndexFilename, "w") as bouquets_tv:
@@ -964,7 +954,7 @@ class JoyneScan(Screen): # the downloader
 			service = self.tmp_services_dict[key]
 			last_scanned_bouquet_list.append(self.bouquetServiceLine(service))
 		print "[%s] Writing Last Scanned bouquet..." % self.debugName
-		with open(self.path + "/userbouquet.LastScanned.tv", "w") as bouquet_current:
+		with open(self.path + "/" + self.lastScannnedBouquetFilename, "w") as bouquet_current:
 			bouquet_current.write(''.join(last_scanned_bouquet_list))
 		
 
