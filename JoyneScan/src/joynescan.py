@@ -197,7 +197,7 @@ class JoyneScan(Screen): # the downloader
 			self["actions"].setEnabled(False) # disable action map here so we can't abort half way through writing result to settings files
 			self.saveLamedb()
 			self.createBouquet()
-			self.scanComplete()
+			self.reloadSettingsAndClose()
 
 	def getFrontend(self):
 		from Screens.Standby import inStandby
@@ -783,20 +783,10 @@ class JoyneScan(Screen): # the downloader
 			transponder["namespace"] = self.buildNamespace(transponder)
 			transponder["pilot"] = eDVBFrontendParametersSatellite.Pilot_Unknown
 
-#			This is all commented out because we are going to do it later due to a TSID miss match problem.
+			if self.config.sync_with_known_tps.value:
+				transponder = self.syncTransponder(transponder)
 
-#			key = "%x:%x:%x" % (transponder["namespace"],
-#				transponder["transport_stream_id"],
-#				transponder["original_network_id"])
-
-#			if key in self.transponders_dict:
-#				transponder["services"] = self.transponders_dict[key]["services"]
-#			self.transponders_dict[key] = transponder
 			transponders_count += 1
-
-#			namespace_key = "%x:%x" % (transponder["transport_stream_id"], transponder["original_network_id"])
-#			if namespace_key not in self.namespace_dict:
-#				self.namespace_dict[namespace_key] = transponder["namespace"]
 
 			if self.extra_debug:
 				print "[%s] transponder" % self.debugName, transponder
@@ -860,7 +850,7 @@ class JoyneScan(Screen): # the downloader
 				print "[%s] service-alpha-order" % self.debugName, key, self.tmp_services_dict[key]
 
 			for key in self.dict_sorter(self.tmp_services_dict, "logical_channel_number"): # prints service list in LCN order
-				print "[%s] serviceLCN-order" % self.debugName, key, self.tmp_services_dict[key]
+				print "[%s] service-LCN-order" % self.debugName, key, self.tmp_services_dict[key]
 
 	def dict_sorter(self, in_dict, sort_by):
 		sort_list = [(x[0], x[1][sort_by]) for x in in_dict.items()]
@@ -885,6 +875,38 @@ class JoyneScan(Screen): # the downloader
 			namespace_key = "%x:%x" % (transponder["transport_stream_id"], transponder["original_network_id"])
 			if namespace_key not in self.namespace_dict:
 				self.namespace_dict[namespace_key] = transponder["namespace"]
+
+	def syncTransponder(self, transponder):
+		# this allows us to sync with data in satellites.xml to avoid crap data in broken SI tables
+		tolerance = 5
+		multiplier = 1000
+		nameToIndex = {"frequency": 1, "symbol_rate": 2, "polarization": 3, "fec_inner": 4, "system": 5, "modulation": 6}
+		tpList = nimmanager.getTransponders(transponder["orbital_position"]) # this data comes from satellites.xml
+		for knownTransponder in tpList:
+			if (knownTransponder[nameToIndex["polarization"]] % 2) == (transponder["polarization"] % 2) and \
+				abs(knownTransponder[nameToIndex["frequency"]] - transponder["frequency"]) < (tolerance*multiplier) and \
+				abs(knownTransponder[nameToIndex["symbol_rate"]] - transponder["symbol_rate"]) < (tolerance*multiplier):
+				transponder["frequency"] = knownTransponder[nameToIndex["frequency"]]
+				transponder["polarization"] = knownTransponder[nameToIndex["polarization"]]
+				transponder["symbol_rate"] = knownTransponder[nameToIndex["symbol_rate"]]
+				transponder["fec_inner"] = knownTransponder[nameToIndex["fec_inner"]]
+				transponder["system"] = knownTransponder[nameToIndex["system"]]
+				transponder["modulation"] = knownTransponder[nameToIndex["modulation"]]
+				return transponder
+
+		# nothing found so we make it a bit looser
+		for knownTransponder in tpList:
+			if (knownTransponder[nameToIndex["polarization"]] % 2) == (transponder["polarization"] % 2) and \
+				abs(knownTransponder[nameToIndex["frequency"]] - transponder["frequency"]) < (tolerance*multiplier):
+				transponder["frequency"] = knownTransponder[nameToIndex["frequency"]]
+				transponder["polarization"] = knownTransponder[nameToIndex["polarization"]]
+				transponder["symbol_rate"] = knownTransponder[nameToIndex["symbol_rate"]]
+				transponder["fec_inner"] = knownTransponder[nameToIndex["fec_inner"]]
+				transponder["system"] = knownTransponder[nameToIndex["system"]]
+				transponder["modulation"] = knownTransponder[nameToIndex["modulation"]]
+				return transponder
+
+		return transponder
 
 	def readBouquetIndex(self):
 		try:
@@ -977,7 +999,7 @@ class JoyneScan(Screen): # the downloader
 		writer.writeLamedb(self.path, self.transponders_dict)
 		writer.writeLamedb5(self.path, self.transponders_dict)
 
-	def scanComplete(self):
+	def reloadSettingsAndClose(self):
 		from Screens.Standby import inStandby
 		self.releaseFrontend()
 		self.restartService()
@@ -996,8 +1018,11 @@ class JoyneScan(Screen): # the downloader
 		print "[%s] Scan successfully completed" % self.debugName
 
 		self.timer = eTimer()
-		self.timer.callback.append(self.close)
+		self.timer.callback.append(self.scanCompletedSuccessfully)
 		self.timer.start(2000, 1)
+
+	def scanCompletedSuccessfully(self):
+		self.close(True)
 
 	def printStats(self):
 		total_time = time() - self.run_start_time
@@ -1140,7 +1165,8 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 			self.list.append(getConfigListEntry(indent + _("Schedule wake from deep standby"), self.config.schedulewakefromdeep, _("If the receiver is in 'Deep Standby' when the schedule is due wake it up to run JoyneScan.")))
 			if self.config.schedulewakefromdeep.value:
 				self.list.append(getConfigListEntry(indent + _("Schedule return to deep standby"), self.config.scheduleshutdown, _("If the receiver was woken from 'Deep Standby' and is currently in 'Standby' and no recordings are in progress return it to 'Deep Standby' once the import has completed.")))
-		self.list.append(getConfigListEntry(_("Extra debug"), self.config.extra_debug, _("This feature is for development only. Requires debug logs to be enabled or enigma2 to be started in console mode (at debug level 4.")))
+		self.list.append(getConfigListEntry(_("Sync with known transponders"), self.config.sync_with_known_tps, _('CAUTION: Sometimes the SI tables contain rogue data. Select "yes" to sync with transponder data listed in satellites.xml. Select "no" if you trust the SI data. Default is "yes". Only change this if you understand why you are doing it.')))
+		self.list.append(getConfigListEntry(_("Extra debug"), self.config.extra_debug, _("CAUTION: This feature is for development only. Requires debug logs to be enabled or enigma2 to be started in console mode (at debug level 4.")))
 
 		self["config"].list = self.list
 		self["config"].l.setList(self.list)
@@ -1173,10 +1199,11 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 
 	def startDownload(self):
 		print "[JoyneScan] startDownload"
-		self.session.openWithCallback(self.joynescanCallback, JoyneScan, {})
+		self.session.openWithCallback(self.close, JoyneScan, {})
 
-	def joynescanCallback(self):
-		pass
+	def joynescanCallback(self, answer=None):
+		if answer:
+			self.close(True)
 
 	def keyAbout(self):
 		self.session.open(JoyneScan_About)

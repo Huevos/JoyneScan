@@ -30,6 +30,7 @@ for i in range(7):
 # end: joynescan.schedule
 
 config.plugins.joynescan.extra_debug = ConfigYesNo(default = False)
+config.plugins.joynescan.sync_with_known_tps = ConfigYesNo(default = True)
 
 
 def startdownload(session, **kwargs):
