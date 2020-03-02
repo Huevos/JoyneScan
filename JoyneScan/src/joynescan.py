@@ -39,8 +39,8 @@ class JoyneScan(Screen): # the downloader
 		self.debugName = "JoyneScan"
 		self.extra_debug = self.config.extra_debug.value
 		self.screentitle = _("Joyne Scan")
-		print "[%s][__init__] Starting..." % (self.debugName,)
-		print "[%s][__init__] args" % (self.debugName,), args
+		print "[%s][__init__] Starting..." % self.debugName
+		print "[%s][__init__] args" % self.debugName, args
 		self.session = session
 		Screen.__init__(self, session)
 		Screen.setTitle(self, self.screentitle)
@@ -69,9 +69,9 @@ class JoyneScan(Screen): # the downloader
 
 		self.LOCK_TIMEOUT = self.LOCK_TIMEOUT_FIXED
 
-		self.TIMEOUT_NIT = 30
-		self.TIMEOUT_BAT = 30
-		self.TIMEOUT_SDT = 5
+		self.TIMEOUT_NIT = 20 # DVB standard says less than 10
+		self.TIMEOUT_BAT = 20 # DVB standard says less than 10
+		self.TIMEOUT_SDT = 5 # DVB standard says less than 2
 
 		self.path = "/etc/enigma2" # path to settings files
 
@@ -81,17 +81,17 @@ class JoyneScan(Screen): # the downloader
 		self.descriptors = {"transponder": 0x43, "serviceList": 0x41, "bouquet": self.bat["descriptor"]}
 
 		self.transponders_dict = {} # overwritten in firstExec
-		self.services_dict = {}
-		self.service_list_dict = {}
+		self.services_dict = {} # Services waiting to be written to bouquet file. Keys of this dict are LCNs
 		self.tmp_service_list = [] # holds the service list from NIT (for cross referencing)
+		self.service_list_dict = {} # keyed version of self.tmp_service_list. Keys, TSID:ONID:SID  in hex
 		self.tmp_bat_content = [] # holds bat data waiting for processing
-		self.namespace_dict = {} # to store namespace when sub network is enabled.
-		self.logical_channel_number_dict = {}
+		self.namespace_dict = {} # to store namespace when sub network is enabled. Keys, TSID:ONID in hex
+		self.logical_channel_number_dict = {} # Keys, TSID:ONID:SID in hex
 		self.ignore_visible_service_flag = False # make this a user override later if found necessary. Visible service flag is currently available in the NIT and BAT on Joyne home transponders
 		self.VIDEO_ALLOWED_TYPES = [1, 4, 5, 17, 22, 24, 25, 27, 31, 135] # 4 and 5 NVOD, 17 MPEG-2 HD digital television service, 22 advanced codec SD digital television service, 24 advanced codec SD NVOD reference service, 27 advanced codec HD NVOD reference service, 31 ???, seems to be used on Astra 1 for some UHD/4K services
 		self.AUDIO_ALLOWED_TYPES = [2, 10] # 10 advanced codec digital radio sound service
-		self.BOUQUET_PREFIX = "userbouquet.JoyneScan."
-		self.bouquetsIndexFilename = "bouquets.tv"
+		self.BOUQUET_PREFIX = "userbouquet.JoyneScan." # avoids hard coding below
+		self.bouquetsIndexFilename = "bouquets.tv" # avoids hard coding below
 		self.bouquetFilename = self.BOUQUET_PREFIX + self.config.provider.value + ".tv"
 		self.lastScannnedBouquetFilename = "userbouquet.LastScanned.tv"
 		self.bouquetName = PROVIDERS[self.config.provider.value]["name"] # already translated
@@ -183,6 +183,7 @@ class JoyneScan(Screen): # the downloader
 				self.timer = eTimer()
 				self.timer.callback.append(self.getFrontend)
 				self.timer.start(100, 1)
+
 		else:
 			if not inStandby:
 				self["action"].setText(_('Bouquets generation...'))
@@ -203,7 +204,7 @@ class JoyneScan(Screen): # the downloader
 		from Screens.Standby import inStandby
 		if not inStandby:
 			self["action"].setText(_("Tune %s %s %s %s...") % (self.bouquetName, self.getOrbPosHuman(self.transpondercurrent["orbital_position"]), str(self.transpondercurrent["frequency"]/1000), self.polarization_dict.get(self.transpondercurrent["polarization"],"")))
-		print "[%s][getFrontend] searching for available tuner" % (self.debugName,)
+		print "[%s][getFrontend] searching for available tuner" % self.debugName
 		nimList = []
 		for nim in nimmanager.nim_slots:
 			if not nim.isCompatible("DVB-S") or \
@@ -214,13 +215,13 @@ class JoyneScan(Screen): # the downloader
 			nimList.append(nim.slot)
 
 		if len(nimList) == 0: # No nims found for this satellite
-			print "[%s][getFrontend] No compatible tuner found" % (self.debugName,)
+			print "[%s][getFrontend] No compatible tuner found" % self.debugName
 			self.showError(_("No compatible tuner found"))
 			return
 
 		resmanager = eDVBResourceManager.getInstance()
 		if not resmanager:
-			print "[%s][getFrontend] Cannot retrieve Resource Manager instance" % (self.debugName,)
+			print "[%s][getFrontend] Cannot retrieve Resource Manager instance" % self.debugName
 			self.showError(_('Cannot retrieve Resource Manager instance'))
 			return
 
@@ -228,7 +229,7 @@ class JoyneScan(Screen): # the downloader
 		if self.session.pipshown:
 			self.session.pipshown = False
 			del self.session.pip
-			print "[%s][getFrontend] Stopping PIP." % (self.debugName,)
+			print "[%s][getFrontend] Stopping PIP." % self.debugName
 
 		# stop currently playing service if it is using a tuner in ("loopthrough", "satposdepends")
 		currentlyPlayingNIM = None
@@ -282,16 +283,16 @@ class JoyneScan(Screen): # the downloader
 				self.session.nav.stopService()
 				self.rawchannel = resmanager.allocateRawChannel(slotid)
 				if self.rawchannel:
-					print "[%s][getFrontend] The active service was stopped, and the NIM is now free to use." % (self.debugName,)
+					print "[%s][getFrontend] The active service was stopped, and the NIM is now free to use." % self.debugName
 					current_slotid = slotid
 
 			if not self.rawchannel:
 				if self.session.nav.RecordTimer.isRecording():
-					print "[%s][getFrontend] Cannot free NIM because a recording is in progress" % (self.debugName,)
+					print "[%s][getFrontend] Cannot free NIM because a recording is in progress" % self.debugName
 					self.showError(_('Cannot free NIM because a recording is in progress'))
 					return
 				else:
-					print "[%s][getFrontend] Cannot get the NIM" % (self.debugName,)
+					print "[%s][getFrontend] Cannot get the NIM" % self.debugName
 					self.showError(_('Cannot get the NIM'))
 					return
 
@@ -311,13 +312,13 @@ class JoyneScan(Screen): # the downloader
 
 		self.frontend = self.rawchannel.getFrontend()
 		if not self.frontend:
-			print "[%s][getFrontend] Cannot get frontend" % (self.debugName,)
+			print "[%s][getFrontend] Cannot get frontend" % self.debugName
 			self.showError(_('Cannot get frontend'))
 			return
 
 		self.demuxer_id = self.rawchannel.reserveDemux()
 		if self.demuxer_id < 0:
-			print "[%s][doTune] Cannot allocate the demuxer." % (self.debugName,)
+			print "[%s][doTune] Cannot allocate the demuxer." % self.debugName
 			self.showError(_('Cannot allocate the demuxer.'))
 			return
 
@@ -607,7 +608,6 @@ class JoyneScan(Screen): # the downloader
 
 		self.BATreadTime += time() - start_time
 
-		#self.processBAT([x for x in bat_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["bouquet"]])
 		self.tmp_bat_content = [x for x in bat_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["bouquet"]]
 
 		print "[%s] Reading BAT completed." % self.debugName
@@ -757,7 +757,6 @@ class JoyneScan(Screen): # the downloader
 			tmp_bat_content.append(service)
 		self.tmp_bat_content = tmp_bat_content
 
-
 	def processServiceList(self):
 		for service in self.tmp_service_list:
 			key = "%x:%x:%x" % (service["transport_stream_id"], service["original_network_id"], service["service_id"])
@@ -836,7 +835,6 @@ class JoyneScan(Screen): # the downloader
 			if "services" not in self.transponders_dict[tpkey]: # create a services dict on the transponder if one does not currently exist
 				self.transponders_dict[tpkey]["services"] = {}
 			self.transponders_dict[tpkey]["services"][self.tmp_services_dict[servicekey]["service_id"]] = self.tmp_services_dict[servicekey]
-
 
 	def addLCNsToServices(self):
 		servicekeys = self.tmp_services_dict.keys()
@@ -976,7 +974,6 @@ class JoyneScan(Screen): # the downloader
 		print "[%s] Writing Last Scanned bouquet..." % self.debugName
 		with open(self.path + "/" + self.lastScannnedBouquetFilename, "w") as bouquet_current:
 			bouquet_current.write(''.join(last_scanned_bouquet_list))
-		
 
 	def bouquetServiceLine(self, service):
 		return "#SERVICE 1:0:%x:%x:%x:%x:%x:0:0:0:\n" % (
@@ -1112,7 +1109,6 @@ class JoyneScan(Screen): # the downloader
 				if sat[0] == orb_pos:
 					return True
 		return False
-
 
 
 class JoyneScan_Setup(ConfigListScreen, Screen):
@@ -1462,4 +1458,3 @@ class AutoScheduleTimer:
 		else:
 			scheduletext = ""
 		return scheduletext
-
