@@ -3,7 +3,7 @@ from . import _
 
 description = _("Scans for Joyne services and creates a bouquet")
 
-from Components.config import config, ConfigSubsection, ConfigYesNo, ConfigSelection, ConfigNumber, NoSave, ConfigClock, ConfigEnableDisable, ConfigSubDict # ConfigText, 
+from Components.config import config, ConfigSubsection, ConfigYesNo, ConfigSelection, ConfigNumber, NoSave, ConfigClock, ConfigEnableDisable, ConfigSubDict
 from Components.NimManager import nimmanager
 from Plugins.Plugin import PluginDescriptor
 from Tools.BoundFunction import boundFunction

@@ -925,10 +925,10 @@ class JoyneScan(Screen): # the downloader
 				if len(lines) > 1:
 					bouquets_tv_list.append("%s" % lines[1])
 			newBouquetIndexContent = ''.join(bouquets_tv_list)
-				
+
 		if '"' + self.lastScannnedBouquetFilename + '"' not in bouquetIndexContent: # check if LasScanned bouquet is present in the index
 			newBouquetIndexContent += "#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET \"%s\" ORDER BY bouquet\n" % self.lastScannnedBouquetFilename
-				
+
 		if bouquetIndexContent != newBouquetIndexContent:
 			with open(self.path + "/" + self.bouquetsIndexFilename, "w") as bouquets_tv:
 				bouquets_tv.write(newBouquetIndexContent)
@@ -1011,7 +1011,7 @@ class JoyneScan(Screen): # the downloader
 			self["status"].setText(_("Services: %d video - %d radio") % (self.video_services, self.radio_services))
 
 		self.printStats()
-		
+
 		print "[%s] Scan successfully completed" % self.debugName
 
 		self.timer = eTimer()
