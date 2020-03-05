@@ -1,0 +1,266 @@
+# English translations for PACKAGE package.
+# Copyright (C) 2020 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Automatically generated, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-03-03 00:24+0000\n"
+"PO-Revision-Date: 2020-03-03 00:24+0000\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "%a %e %b  %-H:%M"
+msgstr "%a %e %b  %-H:%M"
+
+#, python-format
+msgid "%s scheduled update"
+msgstr "%s scheduled update"
+
+#, python-format
+msgid ""
+"%s update is about to start.\n"
+"Do you want to allow this?"
+msgstr ""
+"%s update is about to start.\n"
+"Do you want to allow this?"
+
+msgid "About"
+msgstr "About"
+
+msgid "At least one day of the week must be selected"
+msgstr "At least one day of the week must be selected"
+
+msgid "Bouquets generation..."
+msgstr "Bouquets generation..."
+
+msgid ""
+"CAUTION: Sometimes the SI tables contain rogue data. Select \"yes\" to sync "
+"with transponder data listed in satellites.xml. Select \"no\" if you trust "
+"the SI data. Default is \"yes\". Only change this if you understand why you "
+"are doing it."
+msgstr ""
+"CAUTION: Sometimes the SI tables contain rogue data. Select \"yes\" to sync "
+"with transponder data listed in satellites.xml. Select \"no\" if you trust "
+"the SI data. Default is \"yes\". Only change this if you understand why you "
+"are doing it."
+
+msgid ""
+"CAUTION: This feature is for development only. Requires debug logs to be "
+"enabled or enigma2 to be started in console mode (at debug level 4."
+msgstr ""
+"CAUTION: This feature is for development only. Requires debug logs to be "
+"enabled or enigma2 to be started in console mode (at debug level 4."
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Cannot allocate the demuxer."
+msgstr "Cannot allocate the demuxer."
+
+msgid "Cannot free NIM because a recording is in progress"
+msgstr "Cannot free NIM because a recording is in progress"
+
+msgid "Cannot get frontend"
+msgstr "Cannot get frontend"
+
+msgid "Cannot get the NIM"
+msgstr "Cannot get the NIM"
+
+msgid "Cannot open the demuxer"
+msgstr "Cannot open the demuxer"
+
+msgid "Cannot retrieve Resource Manager instance"
+msgstr "Cannot retrieve Resource Manager instance"
+
+msgid "Close"
+msgstr "Close"
+
+msgid "Could not acquire the correct tsid/onid on the home transponder."
+msgstr "Could not acquire the correct tsid/onid on the home transponder."
+
+msgid "Current settings read..."
+msgstr "Current settings read..."
+
+msgid "Done"
+msgstr "Done"
+
+msgid "Download"
+msgstr "Download"
+
+msgid "Enough Retries, delaying till next schedule."
+msgstr "Enough Retries, delaying till next schedule."
+
+msgid "Exit"
+msgstr "Exit"
+
+msgid "Extra debug"
+msgstr "Extra debug"
+
+msgid "Friday"
+msgstr "Friday"
+
+msgid ""
+"If the receiver is in 'Deep Standby' when the schedule is due wake it up to "
+"run JoyneScan."
+msgstr ""
+"If the receiver is in 'Deep Standby' when the schedule is due wake it up to "
+"run JoyneScan."
+
+msgid ""
+"If the receiver was woken from 'Deep Standby' and is currently in 'Standby' "
+"and no recordings are in progress return it to 'Deep Standby' once the "
+"import has completed."
+msgstr ""
+"If the receiver was woken from 'Deep Standby' and is currently in 'Standby' "
+"and no recordings are in progress return it to 'Deep Standby' once the "
+"import has completed."
+
+msgid "Joyne BE"
+msgstr "Joyne BE"
+
+msgid "Joyne NL"
+msgstr "Joyne NL"
+
+msgid "Joyne Scan"
+msgstr "Joyne Scan"
+
+msgid "JoyneScan"
+msgstr "JoyneScan"
+
+msgid "Last Scanned"
+msgstr "Last Scanned"
+
+msgid "Monday"
+msgstr "Monday"
+
+#, python-format
+msgid "Next scheduled fetch is programmed for %s."
+msgstr "Next scheduled fetch is programmed for %s."
+
+msgid "No compatible tuner found"
+msgstr "No compatible tuner found"
+
+#, python-format
+msgid "No valid NIM found for %s"
+msgstr "No valid NIM found for %s"
+
+msgid "Press OK"
+msgstr "Press OK"
+
+msgid "Press OK to select which days to run JoyneScan."
+msgstr "Press OK to select which days to run JoyneScan."
+
+msgid "Provider"
+msgstr "Provider"
+
+#, python-format
+msgid "Read %s %s %s %s..."
+msgstr "Read %s %s %s %s..."
+
+msgid "Reading current settings..."
+msgstr "Reading current settings..."
+
+msgid "Really close without saving settings?"
+msgstr "Really close without saving settings?"
+
+msgid "Saturday"
+msgstr "Saturday"
+
+msgid "Save"
+msgstr "Save"
+
+msgid "Scans for Joyne services and creates a bouquet"
+msgstr "Scans for Joyne services and creates a bouquet"
+
+msgid "Schedule days of the week"
+msgstr "Schedule days of the week"
+
+msgid "Schedule return to deep standby"
+msgstr "Schedule return to deep standby"
+
+msgid "Schedule time of day"
+msgstr "Schedule time of day"
+
+msgid "Schedule wake from deep standby"
+msgstr "Schedule wake from deep standby"
+
+msgid "Scheduled fetch"
+msgstr "Scheduled fetch"
+
+msgid "Searching for Joyne transponders..."
+msgstr "Searching for Joyne transponders..."
+
+msgid "Select days"
+msgstr "Select days"
+
+msgid "Select the provider you wish to scan."
+msgstr "Select the provider you wish to scan."
+
+#, python-format
+msgid "Services: %d video - %d radio"
+msgstr "Services: %d video - %d radio"
+
+msgid "Set the time of day to run JoyneScan."
+msgstr "Set the time of day to run JoyneScan."
+
+msgid "Set up a task scheduler to periodically update Joyne data."
+msgstr "Set up a task scheduler to periodically update Joyne data."
+
+msgid "Setup"
+msgstr "Setup"
+
+msgid "Show in extensions menu"
+msgstr "Show in extensions menu"
+
+msgid "Something went terribly wrong"
+msgstr "Something went terribly wrong"
+
+msgid "Starting scanner"
+msgstr "Starting scanner"
+
+msgid "Sunday"
+msgstr "Sunday"
+
+msgid "Sync with known transponders"
+msgstr "Sync with known transponders"
+
+msgid "The current configuration has been saved."
+msgstr "The current configuration has been saved."
+
+msgid "Thursday"
+msgstr "Thursday"
+
+#, python-format
+msgid "Timeout for tuner lock on %s"
+msgstr "Timeout for tuner lock on %s"
+
+msgid "Tuesday"
+msgstr "Tuesday"
+
+#, python-format
+msgid "Tune %s %s %s %s..."
+msgstr "Tune %s %s %s %s..."
+
+#, python-format
+msgid "Tuning failed on %s"
+msgstr "Tuning failed on %s"
+
+msgid "Wednesday"
+msgstr "Wednesday"
+
+msgid ""
+"When enabled, this allows you start a Joyne update from the extensions list."
+msgstr ""
+"When enabled, this allows you start a Joyne update from the extensions list."
+
+#, python-format
+msgid "transponders found: %d"
+msgstr "transponders found: %d"
