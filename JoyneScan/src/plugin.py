@@ -44,7 +44,7 @@ def JoyneScanStart(menuid, **kwargs):
 def JoyneScanMain(session, close=None, **kwargs):
 	session.openWithCallback(boundFunction(JoyneScanCallback, close), JoyneScan_Setup)
 
-def JoyneScanCallback(close, answer):
+def JoyneScanCallback(close=None, answer=None):
 	if close and answer:
 		close(True)
 
