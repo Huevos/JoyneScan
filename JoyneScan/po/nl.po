@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-03-03 00:24+0000\n"
-"PO-Revision-Date: 2020-03-10 11:30+0100\n"
-"Last-Translator: Rob van der Does <RobvanderDoes@Gmail.com>\n"
+"PO-Revision-Date: 2020-03-10 21:16+0100\n"
+"Last-Translator: TechNL <tech@openpli.org>\n"
 "Language-Team: none\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.3\n"
+"X-Generator: Poedit 2.0.6\n"
 
 msgid "%a %e %b  %-H:%M"
 msgstr "%a %e %b  %-H:%M"
@@ -30,8 +30,8 @@ msgid ""
 "%s update is about to start.\n"
 "Do you want to allow this?"
 msgstr ""
-"%s update begint zo.\n"
-"Toestaan?"
+"De %s update wordt gestart.\n"
+"Is dit akkoord?"
 
 msgid "About"
 msgstr "Over"
@@ -48,78 +48,82 @@ msgid ""
 "the SI data. Default is \"yes\". Only change this if you understand why you "
 "are doing it."
 msgstr ""
-"PAS OP: Soms bevatten de SI-tabellen vreemde data. Kies 'Ja' om te "
-"synchroniseren met de data in de satellites.xml, kies 'Nee' als u de SI-"
-"data vertrouwt. Verander dit alleen als u verstand van zaken hebt."
+"Met deze optie activeert u de synchronisatie met bekende transponders.\n"
+"\n"
+"PAS OP: Soms bevatten de SI tabellen vreemde data. Kies 'Ja' om met de "
+"transponderdata van de satellites.xml te synchroniseren. Kies 'Nee' als je "
+"de SI data vertrouwt. De standaardinstelling is 'Ja'. Verander dit enkel "
+"als je begrijpt waarmee je bezig bent."
 
 msgid ""
 "CAUTION: This feature is for development only. Requires debug logs to be "
 "enabled or enigma2 to be started in console mode (at debug level 4."
 msgstr ""
-"PAS OP: Deze optie is alleen voor ontwikkelingsdoeleinden. Het gebruik "
-"vereist dat Enigma2 in debuglevel 4 is gestart."
+"Indien geactiveerd, dan schakel je de debug mogelijkheid in.\n"
+"\n"
+"PAS OP: Deze instelling is alleen voor ontwikkelingsdoeleinden. Het is "
+"noodzakelijk dat Enigma2 in debuglevel 4 of in de console draait."
 
 msgid "Cancel"
-msgstr "Annuleer"
+msgstr "Annuleren"
 
 msgid "Cannot allocate the demuxer."
 msgstr "Kan de demuxer niet toewijzen."
 
 msgid "Cannot free NIM because a recording is in progress"
-msgstr "Kan de NIM niet gebruiken omdat er een opname loopt"
+msgstr "Kan de tuner niet vrijmaken omdat een opname aktief is"
 
 msgid "Cannot get frontend"
-msgstr "Kan de tuner niet bereiken"
+msgstr "Kan het frontend niet gebruiken"
 
 msgid "Cannot get the NIM"
-msgstr "Kan de NIM niet bereiken"
+msgstr "Kan geen NIM bereiken"
 
 msgid "Cannot open the demuxer"
 msgstr "Kan de demuxer niet openen"
 
 msgid "Cannot retrieve Resource Manager instance"
-msgstr "Kan de bronmanager niet gebruiken"
+msgstr "Kan het voorbeeld van de bronbeheerder niet ophalen"
 
 msgid "Close"
-msgstr "Sluit"
+msgstr "Sluiten"
 
 msgid "Could not acquire the correct tsid/onid on the home transponder."
 msgstr "Kon de juiste tsid/onid op de hometransponder niet vinden."
 
 msgid "Current settings read..."
-msgstr "Huidige instellingen worden gelezen..."
+msgstr "Huidige settings ingelezen..."
 
 msgid "Done"
-msgstr "Klaar"
+msgstr "Gereed"
 
 msgid "Download"
-msgstr "Download"
+msgstr "Start de scan"
 
 msgid "Enough Retries, delaying till next schedule."
-msgstr "Vaak genoeg geprobeerd, wacht op volgende geplande uitvoering."
+msgstr "Vaak genoeg geprobeerd, op de volgende geplande uitvoering wachten."
 
 msgid "Exit"
-msgstr "Sluit"
+msgstr "Einde"
 
 msgid "Extra debug"
 msgstr "Extra debug"
 
 msgid "Friday"
-msgstr "vrijdag"
+msgstr "Vrijdag"
 
 msgid ""
 "If the receiver is in 'Deep Standby' when the schedule is due wake it up to "
 "run JoyneScan."
-msgstr ""
-"Wakker maken vanuit 'Deep stand-by' om de geplande JoyneScan uit te voeren."
+msgstr "Haal de receiver uit deep standby als een Joynescan gepland staat."
 
 msgid ""
 "If the receiver was woken from 'Deep Standby' and is currently in 'Standby' "
 "and no recordings are in progress return it to 'Deep Standby' once the "
 "import has completed."
 msgstr ""
-"Als de STB wakker was gemaakt en momenteel in stand-by staat zonder dat er "
-"opnames lopen: keer terug naar 'Deep Stand-by' als de import gereed is."
+"Zet de receiver terug in deep standby als de import gereed is en er geen "
+"opname aktief is."
 
 msgid "Joyne BE"
 msgstr "Joyne BE"
@@ -134,29 +138,28 @@ msgid "JoyneScan"
 msgstr "JoyneScan"
 
 msgid "Last Scanned"
-msgstr "Laatst gescanned"
+msgstr "Laatst gescand"
 
 msgid "Monday"
-msgstr "maandag"
+msgstr "Maandag"
 
 #, python-format
 msgid "Next scheduled fetch is programmed for %s."
-msgstr "De volgende scan is gepland voor %s."
+msgstr "Volgende geplande scan is ingesteld voor %s."
 
 msgid "No compatible tuner found"
-msgstr "Geen geschikte tuner gevonden"
+msgstr "Geen compatibele tuner gevonden"
 
 #, python-format
 msgid "No valid NIM found for %s"
-msgstr "Geen geschikte NIM gevonden voor %s"
+msgstr "Geen NIM gevonden voor %s"
 
 msgid "Press OK"
-msgstr "Druk op 'OK'"
+msgstr "Druk op OK"
 
 msgid "Press OK to select which days to run JoyneScan."
 msgstr ""
-"Druk op 'OK' om de dagen te selecteren waarop JoyneScan moet worden "
-"uitgevoerd."
+"Druk op OK voor een selectetie op welke dagen de JoyneScan moet starten."
 
 msgid "Provider"
 msgstr "Provider"
@@ -166,102 +169,104 @@ msgid "Read %s %s %s %s..."
 msgstr "Lees %s %s %s %s..."
 
 msgid "Reading current settings..."
-msgstr "Leest huidige instellingen..."
+msgstr "Huidige settings worden ingelezen...."
 
 msgid "Really close without saving settings?"
 msgstr "Echt afsluiten zonder op te slaan?"
 
 msgid "Saturday"
-msgstr "zaterdag"
+msgstr "Zaterdag"
 
 msgid "Save"
-msgstr "Sla op"
+msgstr "Opslaan"
 
 msgid "Scans for Joyne services and creates a bouquet"
-msgstr "Scant Joyne-kanalen en maakt een boeket"
+msgstr "Scan naar Joyne kanalen en maakt een boeket"
 
 msgid "Schedule days of the week"
-msgstr "Plan weekdagen"
+msgstr "Weekdagen instellen"
 
 msgid "Schedule return to deep standby"
-msgstr "Plan terugkeer naar 'Deep stand-by'"
+msgstr "Na scannen terugkeren naar deep standby"
 
 msgid "Schedule time of day"
-msgstr "Plan tijdstip"
+msgstr "Tijdstip instellen"
 
 msgid "Schedule wake from deep standby"
-msgstr "Plan wakker woden vanuit 'Deep stand-by'"
+msgstr "Uit deep standby halen"
 
 msgid "Scheduled fetch"
-msgstr "Geplande scan"
+msgstr "Planning van de scans"
 
 msgid "Searching for Joyne transponders..."
-msgstr "Zoekt naar Joyne transponder..."
+msgstr "Naar Joyne transponders zoeken...."
 
 msgid "Select days"
 msgstr "Kies dagen"
 
 msgid "Select the provider you wish to scan."
-msgstr "Kies de provider die u wilt scannen."
+msgstr "Met deze optie maakt u de keuze welke provider u wenst te scannen."
 
 #, python-format
 msgid "Services: %d video - %d radio"
 msgstr "Kanalen: %d video - %d radio"
 
 msgid "Set the time of day to run JoyneScan."
-msgstr "Stel het tijdstip in waarop u Joyne wilt scannen."
+msgstr "Stel het tijdstip in waarop de JoyneScan gestart moet worden."
 
 msgid "Set up a task scheduler to periodically update Joyne data."
-msgstr "Stel een taakplanner in om periodiek Joyne-data te updaten."
+msgstr ""
+"Indien geactiveerd, dan kunt u een planning opmaken om periodiek de Joyne "
+"zenderlijsten te vernieuwen."
 
 msgid "Setup"
 msgstr "Instellingen"
 
 msgid "Show in extensions menu"
-msgstr "Toon in extensiemenu"
+msgstr "Toon Joynescan in het applicatiemenu"
 
 msgid "Something went terribly wrong"
-msgstr "Er is iets helemaal mis gegaan"
+msgstr "Iets is volledige fout gegaan"
 
 msgid "Starting scanner"
-msgstr "Start de scan"
+msgstr "Scan starten"
 
 msgid "Sunday"
-msgstr "zondag"
+msgstr "Zondag"
 
 msgid "Sync with known transponders"
-msgstr "Synchroniseer met bekende transponder."
+msgstr "Synchroniseren met bekende transponders"
 
 msgid "The current configuration has been saved."
 msgstr "De huidige configuratie is opgeslagen."
 
 msgid "Thursday"
-msgstr "donderdag"
+msgstr "Donderdag"
 
 #, python-format
 msgid "Timeout for tuner lock on %s"
-msgstr "Timeout voor lock op %s"
+msgstr "Lock timeout van de tuner op %s"
 
 msgid "Tuesday"
-msgstr "dinsdag"
+msgstr "Dinsdag"
 
 #, python-format
 msgid "Tune %s %s %s %s..."
-msgstr "Tunet %s %s %s %s..."
+msgstr "Afstemmen %s %s %s %s..."
 
 #, python-format
 msgid "Tuning failed on %s"
-msgstr "Tunen mislukt op %s"
+msgstr "Afstemmen mislukt op %s"
 
 msgid "Wednesday"
-msgstr "woensdag"
+msgstr "Woensdag"
 
 msgid ""
 "When enabled, this allows you start a Joyne update from the extensions list."
 msgstr ""
-"Indien ingeschakeld kunt u een Joyne update uitvoeren vanuit het "
-"extensiemenu."
+"Indien geactiveerd, dan kan een Joyne zenderupdate worden uitgevoerd vanuit "
+"het 'Applicatie-menu'. (blauwe toets)"
 
 #, python-format
 msgid "transponders found: %d"
-msgstr "%d transponders gevonden"
+msgstr "aantal gevonden transponders: %d"
