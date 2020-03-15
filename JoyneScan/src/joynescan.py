@@ -83,7 +83,7 @@ class JoyneScan(Screen): # the downloader
 		self.transponders_dict = {} # overwritten in firstExec
 		self.services_dict = {} # Services waiting to be written to bouquet file. Keys of this dict are LCNs
 		self.tmp_service_list = [] # holds the service list from NIT (for cross referencing)
-		self.service_list_dict = {} # keyed version of self.tmp_service_list. Keys, TSID:ONID:SID  in hex
+#		self.service_list_dict = {} # keyed version of self.tmp_service_list. Keys, TSID:ONID:SID  in hex
 		self.tmp_bat_content = [] # holds bat data waiting for processing
 		self.namespace_dict = {} # to store namespace when sub network is enabled. Keys, TSID:ONID in hex
 		self.logical_channel_number_dict = {} # Keys, TSID:ONID:SID in hex
@@ -189,7 +189,7 @@ class JoyneScan(Screen): # the downloader
 				self["action"].setText(_('Bouquets generation...'))
 				self["status"].setText(_("Services: %d video - %d radio") % (self.video_services, self.radio_services))
 			self.correctTsidErrors() # correct errors due to "broken" NIT on home transponder
-			self.processServiceList()
+#			self.processServiceList()
 			self.processBAT()
 			self.addTransponders()
 			self.addNamespaceToServices()
@@ -744,12 +744,14 @@ class JoyneScan(Screen): # the downloader
 		self.SDTscanList = SDTscanList
 		if self.extra_debug:
 			print "[%s] errors_dict" % self.debugName, errors_dict
+
 		for service in self.tmp_service_list:
 			key = "%x:%x" % (service["transport_stream_id"], service["original_network_id"])
 			if key in errors_dict:
 				service["transport_stream_id"] = errors_dict[key]
 			tmp_service_list.append(service)
 		self.tmp_service_list = tmp_service_list
+
 		for service in self.tmp_bat_content:
 			key = "%x:%x" % (service["transport_stream_id"], service["original_network_id"])
 			if key in errors_dict:
@@ -757,12 +759,12 @@ class JoyneScan(Screen): # the downloader
 			tmp_bat_content.append(service)
 		self.tmp_bat_content = tmp_bat_content
 
-	def processServiceList(self):
-		for service in self.tmp_service_list:
-			key = "%x:%x:%x" % (service["transport_stream_id"], service["original_network_id"], service["service_id"])
-			self.service_list_dict[key] = service
-		if self.extra_debug:
-			print "[%s] Service list" % self.debugName, self.service_list_dict
+#	def processServiceList(self):
+#		for service in self.tmp_service_list:
+#			key = "%x:%x:%x" % (service["transport_stream_id"], service["original_network_id"], service["service_id"])
+#			self.service_list_dict[key] = service
+#		if self.extra_debug:
+#			print "[%s] Service list" % self.debugName, self.service_list_dict
 
 	def processTransponders(self, transponderList):
 		transponders_count = 0
