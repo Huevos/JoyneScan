@@ -17,7 +17,6 @@ PROVIDERS = {
 			"original_network_id": 0x009e,
 			"transport_stream_id": 0xc35a,},
 		"bat": {
-			"descriptor": 0x83,
 			"BouquetID": 0x1,},},
 	"Joyne_NL": {
 		"name": _("Joyne NL"), 
@@ -33,5 +32,4 @@ PROVIDERS = {
 			"original_network_id": 0x009e,
 			"transport_stream_id": 0xc364,},
 		"bat": {
-			"descriptor": 0x83,
 			"BouquetID": 0x1,},},}

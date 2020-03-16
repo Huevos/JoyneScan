@@ -78,7 +78,7 @@ class JoyneScan(Screen): # the downloader
 		self.homeTransponder = PROVIDERS[self.config.provider.value]["transponder"]
 		self.bat = PROVIDERS[self.config.provider.value]["bat"]
 
-		self.descriptors = {"transponder": 0x43, "serviceList": 0x41, "bouquet": self.bat["descriptor"]}
+		self.descriptors = {"transponder": 0x43, "serviceList": 0x41, "lcn": 0x83}
 
 		self.transponders_dict = {} # overwritten in firstExec
 		self.services_dict = {} # Services waiting to be written to bouquet file. Keys of this dict are LCNs
@@ -608,7 +608,7 @@ class JoyneScan(Screen): # the downloader
 
 		self.BATreadTime += time() - start_time
 
-		self.tmp_bat_content = [x for x in bat_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["bouquet"]]
+		self.tmp_bat_content = [x for x in bat_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["lcn"]]
 
 		print "[%s] Reading BAT completed." % self.debugName
 
