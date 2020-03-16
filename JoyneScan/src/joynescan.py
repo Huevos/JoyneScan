@@ -76,7 +76,7 @@ class JoyneScan(Screen): # the downloader
 		self.path = "/etc/enigma2" # path to settings files
 
 		self.homeTransponder = PROVIDERS[self.config.provider.value]["transponder"]
-		self.bat = PROVIDERS[self.config.provider.value]["bat"]
+		self.bat = PROVIDERS[self.config.provider.value]["bat"] if "bat" in PROVIDERS[self.config.provider.value] else None
 
 		self.descriptors = {"transponder": 0x43, "serviceList": 0x41, "lcn": 0x83}
 
@@ -96,7 +96,9 @@ class JoyneScan(Screen): # the downloader
 		self.lastScannnedBouquetFilename = "userbouquet.LastScanned.tv"
 		self.bouquetName = PROVIDERS[self.config.provider.value]["name"] # already translated
 		self.index = -1
-		self.actionsList = ["read NIT", "read BAT",] # "read SDTs"]
+		self.actionsList = ["read NIT",] # "read BAT", "read SDTs"]
+		if self.bat is not None:
+			 self.actionsList.append("read BAT")
 		self.actionsListOrigLength = len(self.actionsList)
 
 		self.adapter = 0 # fix me
@@ -704,6 +706,7 @@ class JoyneScan(Screen): # the downloader
 		self.manager()
 
 	def processBAT(self):
+		self.logical_channel_number_dict = {} # start clean (in theory should be empty but who knows what was in the NIT)
 		if self.extra_debug:
 			lcn_list = []
 			sid_list = []
