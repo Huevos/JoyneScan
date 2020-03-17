@@ -103,9 +103,9 @@ class JoyneScan(Screen): # the downloader
 
 		self.adapter = 0 # fix me
 
-		self.nit_pid = 0x10 # DVB default
-		self.nit_current_table_id = 0x40 # DVB default
-		self.nit_other_table_id = 0x41 # DVB default
+		self.nit_pid_default = 0x10 # DVB default
+		self.nit_current_table_id_default = 0x40 # DVB default
+		self.nit_other_table_id_default = 0x41 # DVB default
 		self.sdt_pid = 0x11 # DVB default
 		self.sdt_current_table_id = 0x42 # DVB default
 		self.sdt_other_table_id = 0x46 # DVB default
@@ -424,22 +424,26 @@ class JoyneScan(Screen): # the downloader
 
 	def readNIT(self, read_other_section=True):
 		print "[%s] Reading NIT..." % self.debugName
+		
+		nit_current_table_id = self.transpondercurrent["nit_current_table_id"] if "nit_current_table_id" in self.transpondercurrent else self.nit_current_table_id_default
+		nit_other_table_id = self.transpondercurrent["nit_other_table_id"] if "nit_other_table_id" in self.transpondercurrent else self.nit_other_table_id_default
+		nit_pid = self.transpondercurrent["nit_pid"] if "nit_pid" in self.transpondercurrent else self.nit_pid_default
 
-		if self.nit_other_table_id == 0x00:
+		if nit_other_table_id == 0x00:
 			mask = 0xff
 		else:
-			mask = self.nit_current_table_id ^ self.nit_other_table_id ^ 0xff
+			mask = nit_current_table_id ^ nit_other_table_id ^ 0xff
 
 		self.setDemuxer()
 
 		start_time = time()
 
-		fd = dvbreader.open(self.demuxer_device, self.nit_pid, self.nit_current_table_id, mask, self.selectedNIM)
+		fd = dvbreader.open(self.demuxer_device, nit_pid, nit_current_table_id, mask, self.selectedNIM)
 		if fd < 0:
 			print "[%s] Cannot open the demuxer" % self.debugName
 			print "[%s] demuxer_device" % self.debugName, str(self.demuxer_device)
-			print "[%s] nit_pid" % self.debugName, str(self.nit_pid)
-			print "[%s] nit_current_table_id" % self.debugName, str(self.nit_current_table_id)
+			print "[%s] nit_pid" % self.debugName, str(nit_pid)
+			print "[%s] nit_current_table_id" % self.debugName, str(nit_current_table_id)
 			print "[%s] mask", str(mask)
 			print "[%s] current_slotid" % self.debugName, str(self.selectedNIM)
 			self.showError(_('Cannot open the demuxer'))
@@ -457,18 +461,18 @@ class JoyneScan(Screen): # the downloader
 		nit_other_sections_count = {}
 		nit_other_content = {}
 		nit_other_completed = {}
-		all_nit_others_completed = not read_other_section or self.nit_other_table_id == 0x00
+		all_nit_others_completed = not read_other_section or nit_other_table_id == 0x00
 
 		timeout = datetime.datetime.now()
 		timeout += datetime.timedelta(0, self.TIMEOUT_NIT)
 		while True:
 			if datetime.datetime.now() > timeout:
 				print "[%s] Timed out reading NIT" % self.debugName
-				if self.nit_other_table_id != 0x00:
+				if nit_other_table_id != 0x00:
 					print "[%s] No nit_other found - set nit_other_table_id=\"0x00\" for faster scanning?" % self.debugName
 				break
 
-			section = dvbreader.read_nit(fd, self.nit_current_table_id, self.nit_other_table_id)
+			section = dvbreader.read_nit(fd, nit_current_table_id, nit_other_table_id)
 			if section is None:
 				sleep(0.1)	# no data.. so we wait a bit
 				continue
@@ -477,7 +481,7 @@ class JoyneScan(Screen): # the downloader
 				print "[%s] NIT raw section header" % self.debugName, section["header"]
 				print "[%s] NIT raw section content" % self.debugName, section["content"]
 
-			if (section["header"]["table_id"] == self.nit_current_table_id and not nit_current_completed):
+			if (section["header"]["table_id"] == nit_current_table_id and not nit_current_completed):
 				if self.extra_debug:
 					print "[%s] raw section above is from NIT actual table." % self.debugName
 
@@ -495,7 +499,7 @@ class JoyneScan(Screen): # the downloader
 					if len(nit_current_sections_read) == nit_current_sections_count:
 						nit_current_completed = True
 
-			elif section["header"]["table_id"] == self.nit_other_table_id and not all_nit_others_completed:
+			elif section["header"]["table_id"] == nit_other_table_id and not all_nit_others_completed:
 				if self.extra_debug:
 					print "[%s] raw section above is from NIT other table." % self.debugName
 				network_id = section["header"]["network_id"]
