@@ -192,7 +192,8 @@ class JoyneScan(Screen): # the downloader
 				self["status"].setText(_("Services: %d video - %d radio") % (self.video_services, self.radio_services))
 			self.correctTsidErrors() # correct errors due to "broken" NIT on home transponder
 #			self.processServiceList()
-			self.processBAT()
+			if self.bat is not None:
+				self.processBAT()
 			self.addTransponders()
 			self.addNamespaceToServices()
 			self.addLCNsToServices()
@@ -544,6 +545,21 @@ class JoyneScan(Screen): # the downloader
 
 		# self.processServiceList([x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["serviceList"]])
 		self.tmp_service_list = [x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["serviceList"]]
+
+		# start: only for providers that store LCN in NIT (not Joyne where they are stored in the BAT)
+		LCNs = [x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["lcn"]]
+		if self.extra_debug:
+			print "[%s][readNIT] LCNs" % self.debugName, LCNs
+		if LCNs:
+			for LCN in LCNs:
+				LCNkey = "%x:%x:%x" % (LCN["transport_stream_id"], LCN["original_network_id"], LCN["service_id"])
+
+				if not self.ignore_visible_service_flag and "visible_service_flag" in LCN and LCN["visible_service_flag"] == 0:
+					continue
+
+				self.logical_channel_number_dict[LCNkey] = LCN
+		# end: only for providers that store LCN in NIT (not Joyne where they are stored in the BAT)
+
 
 		if read_other_section and len(nit_other_completed):
 			print "[%s] Added/Updated %d transponders with network_id = 0x%x and other network_ids = %s" % (self.debugName, transponders_count, nit_current_section_network_id, ','.join(map(hex, nit_other_completed.keys())))
