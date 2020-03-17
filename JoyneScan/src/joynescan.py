@@ -892,6 +892,8 @@ class JoyneScan(Screen): # the downloader
 				transponder["original_network_id"])
 
 			if key in self.transponders_dict:
+				if "services" not in self.transponders_dict[key]: # sanity
+					self.transponders_dict[key]["services"] = {}
 				transponder["services"] = self.transponders_dict[key]["services"]
 			self.transponders_dict[key] = transponder
 
