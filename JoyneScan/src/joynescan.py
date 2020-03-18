@@ -988,6 +988,20 @@ class JoyneScan(Screen): # the downloader
 	def spacer(self):
 		return "#SERVICE 1:320:0:0:0:0:0:0:0:0:\n#DESCRIPTION  \n"
 
+	def utf8_convert(self, text):
+		for encoding in ["utf8","latin-1"]:
+			try:
+				text.decode(encoding=encoding)
+			except UnicodeDecodeError:
+				encoding = None
+			else:
+				break
+		if encoding == "utf8":
+			return text
+		if encoding is None:
+			encoding = "utf8"
+		return text.decode(encoding, errors="ignore").encode("utf8")
+
 	def createBouquet(self):
 		self.handleBouquetIndex()
 		self.writeBouquet()
