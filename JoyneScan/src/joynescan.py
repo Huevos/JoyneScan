@@ -648,6 +648,10 @@ class JoyneScan(Screen): # the downloader
 				sleep(0.1)	# no data.. so we wait a bit
 				continue
 
+			if self.extra_debug:
+				print "[%s] SDT raw section header" % self.debugName, section["header"]
+				print "[%s] SDT raw section content" % self.debugName, section["content"]
+
 			# Check the ONID is correct... maybe we are receiving the "wrong" satellite or dish is still moving.
 			if self.transpondercurrent["original_network_id"] != section["header"]["original_network_id"]:
 				continue
