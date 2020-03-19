@@ -982,12 +982,13 @@ class JoyneScan(Screen): # the downloader
 			bouquet_current.write(''.join(last_scanned_bouquet_list))
 
 	def bouquetServiceLine(self, service):
-		return "#SERVICE 1:0:%x:%x:%x:%x:%x:0:0:0:\n" % (
+		return "#SERVICE 1:0:%x:%x:%x:%x:%x:0:0:0:\n%s" % (
 			service["service_type"],
 			service["service_id"],
 			service["transport_stream_id"],
 			service["original_network_id"],
-			service["namespace"])
+			service["namespace"],
+			(("#DESCRIPTION %s\n" % self.utf8_convert(service["service_name"])) if self.config.force_service_name.value else ""))
 
 	def spacer(self):
 		return "#SERVICE 1:320:0:0:0:0:0:0:0:0:\n#DESCRIPTION  \n"
@@ -1183,6 +1184,9 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 				self.list.append(getConfigListEntry(indent + _("Schedule return to deep standby"), self.config.scheduleshutdown, _("If the receiver was woken from 'Deep Standby' and is currently in 'Standby' and no recordings are in progress return it to 'Deep Standby' once the import has completed.")))
 		self.list.append(getConfigListEntry(_("Sync with known transponders"), self.config.sync_with_known_tps, _('CAUTION: Sometimes the SI tables contain rogue data. Select "yes" to sync with transponder data listed in satellites.xml. Select "no" if you trust the SI data. Default is "yes". Only change this if you understand why you are doing it.')))
 		self.list.append(getConfigListEntry(_("Extra debug"), self.config.extra_debug, _("CAUTION: This feature is for development only. Requires debug logs to be enabled or enigma2 to be started in console mode (at debug level 4.")))
+		self.list.append(getConfigListEntry(_("Force channel name"), self.config.force_service_name, _("Switch this on only if you have issues with \"N/A\" appearing in your Joyne channel list. Switching this on means the channel name will not auto update if the broadcaster changes the channel name.")))
+
+
 
 		self["config"].list = self.list
 		self["config"].l.setList(self.list)
