@@ -113,7 +113,7 @@ class JoyneScan(Screen): # the downloader
 		self.bat_table_id = 0x4a # DVB default
 
 		self.SDTscanList = [] # list of transponders we are going to scan the SDT of.
-		self.tmp_services_dict = {} # services found in SDTs of the scanned transponders
+		self.tmp_services_dict = {} # services found in SDTs of the scanned transponders. Keys, TSID:ONID:SID  in hex 
 
 		self.polarization_dict = {
 			eDVBFrontendParametersSatellite.Polarisation_Horizontal: "H",
@@ -195,6 +195,7 @@ class JoyneScan(Screen): # the downloader
 			if self.bat is not None:
 				self.processBAT()
 			self.addTransponders()
+			self.fixServiceNames()
 			self.addNamespaceToServices()
 			self.addLCNsToServices()
 			self.addServicesToTransponders()
@@ -670,6 +671,10 @@ class JoyneScan(Screen): # the downloader
 				sleep(0.1)	# no data.. so we wait a bit
 				continue
 
+			if self.extra_debug:
+				print "[%s] SDT raw section header" % self.debugName, section["header"]
+				print "[%s] SDT raw section content" % self.debugName, section["content"]
+
 			# Check the ONID is correct... maybe we are receiving the "wrong" satellite or dish is still moving.
 			if self.transpondercurrent["original_network_id"] != section["header"]["original_network_id"]:
 				continue
@@ -678,7 +683,7 @@ class JoyneScan(Screen): # the downloader
 			# A miss match happens when the NIT table on the home transponder has broken data.
 			# If there is a miss match correct it now, before the data is "used in anger".
 			if self.transpondercurrent["transport_stream_id"] != section["header"]["transport_stream_id"]:
-				print "[%s] ONID/TSID mismatch. Supposed to be reading: 0x%x/0x%x, Currently reading: 0x%x/0x%x. Will accept current data as  authoritative." % (self.debugName, self.transpondercurrent["original_network_id"], self.transpondercurrent["transport_stream_id"], section["header"]["original_network_id"], section["header"]["transport_stream_id"])
+				print "[%s] readSDT ONID/TSID mismatch. Supposed to be reading: 0x%x/0x%x, Currently reading: 0x%x/0x%x. Will accept current data as  authoritative." % (self.debugName, self.transpondercurrent["original_network_id"], self.transpondercurrent["transport_stream_id"], section["header"]["original_network_id"], section["header"]["transport_stream_id"])
 				self.transpondercurrent["real_transport_stream_id"] = section["header"]["transport_stream_id"]
 
 			if section["header"]["table_id"] == self.sdt_current_table_id and not sdt_current_completed:
@@ -838,6 +843,12 @@ class JoyneScan(Screen): # the downloader
 			self["progress"].setValue(self.progresscurrent)
 
 		return transponders_count
+
+	def fixServiceNames(self):
+		from servicenames import ServiceNames
+		for servicekey in ServiceNames.keys():
+			if servicekey in self.tmp_services_dict:
+				self.tmp_services_dict[servicekey]["service_name"] = ServiceNames[servicekey]
 
 	def addNamespaceToServices(self):
 		servicekeys = self.tmp_services_dict.keys()
@@ -1003,29 +1014,21 @@ class JoyneScan(Screen): # the downloader
 			bouquet_current.write(''.join(last_scanned_bouquet_list))
 
 	def bouquetServiceLine(self, service):
-		return "#SERVICE 1:0:%x:%x:%x:%x:%x:0:0:0:\n" % (
+		return "#SERVICE 1:0:%x:%x:%x:%x:%x:0:0:0:\n%s" % (
 			service["service_type"],
 			service["service_id"],
 			service["transport_stream_id"],
 			service["original_network_id"],
-			service["namespace"])
+			service["namespace"],
+			(("#DESCRIPTION %s\n" % self.cleanServiceName(service["service_name"])) if self.config.force_service_name.value else ""))
 
 	def spacer(self):
 		return "#SERVICE 1:320:0:0:0:0:0:0:0:0:\n#DESCRIPTION  \n"
 
-	def utf8_convert(self, text):
-		for encoding in ["utf8","latin-1"]:
-			try:
-				text.decode(encoding=encoding)
-			except UnicodeDecodeError:
-				encoding = None
-			else:
-				break
-		if encoding == "utf8":
-			return text
-		if encoding is None:
-			encoding = "utf8"
-		return text.decode(encoding, errors="ignore").encode("utf8")
+	def cleanServiceName(self, text):
+		control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
+		control_char_re = re.compile('[%s]' % re.escape(control_chars))
+		return control_char_re.sub('', text.decode('latin-1').encode("utf8"))
 
 	def createBouquet(self):
 		self.handleBouquetIndex()
@@ -1204,6 +1207,9 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 				self.list.append(getConfigListEntry(indent + _("Schedule return to deep standby"), self.config.scheduleshutdown, _("If the receiver was woken from 'Deep Standby' and is currently in 'Standby' and no recordings are in progress return it to 'Deep Standby' once the import has completed.")))
 		self.list.append(getConfigListEntry(_("Sync with known transponders"), self.config.sync_with_known_tps, _('CAUTION: Sometimes the SI tables contain rogue data. Select "yes" to sync with transponder data listed in satellites.xml. Select "no" if you trust the SI data. Default is "yes". Only change this if you understand why you are doing it.')))
 		self.list.append(getConfigListEntry(_("Extra debug"), self.config.extra_debug, _("CAUTION: This feature is for development only. Requires debug logs to be enabled or enigma2 to be started in console mode (at debug level 4.")))
+		self.list.append(getConfigListEntry(_("Force channel name"), self.config.force_service_name, _("Switch this on only if you have issues with \"N/A\" appearing in your Joyne channel list. Switching this on means the channel name will not auto update if the broadcaster changes the channel name.")))
+
+
 
 		self["config"].list = self.list
 		self["config"].l.setList(self.list)
