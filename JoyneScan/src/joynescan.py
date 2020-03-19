@@ -1000,7 +1000,7 @@ class JoyneScan(Screen): # the downloader
 	def cleanServiceName(self, text):
 		control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
 		control_char_re = re.compile('[%s]' % re.escape(control_chars))
-		return control_char_re.sub('', text.decode('latin-1').encode("utf8"))
+		return control_char_re.sub('', text).decode('latin-1').encode("utf8")
 
 	def createBouquet(self):
 		self.handleBouquetIndex()
