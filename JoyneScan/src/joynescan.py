@@ -989,8 +989,6 @@ class JoyneScan(Screen): # the downloader
 		last_scanned_bouquet_list = ["#NAME " + _("Last Scanned") + "\n"]
 		sort_list = []
 		avoid_duplicates = []
-		control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
-		control_char_re = re.compile('[%s]' % re.escape(control_chars))
 		for key in self.tmp_services_dict.keys():
 			service = self.tmp_services_dict[key]
 			# sort flat, alphabetic before numbers
@@ -1003,8 +1001,7 @@ class JoyneScan(Screen): # the downloader
 			if ref in avoid_duplicates:
 				continue
 			avoid_duplicates.append(ref)
-			service_name = control_char_re.sub('', service["service_name"]).decode('latin-1').encode("utf8") #clean up service name
-			sort_list.append((key, re.sub('^(?![a-z])', 'zzzzz', service_name.lower()), service["service_type"] not in self.VIDEO_ALLOWED_TYPES))
+			sort_list.append((key, re.sub('^(?![a-z])', 'zzzzz', self.cleanServiceName(service["service_name"]).lower()), service["service_type"] not in self.VIDEO_ALLOWED_TYPES))
 		sort_list = [x[0] for x in sorted(sort_list, key=lambda listItem: (listItem[2], listItem[1]))] # listItem[2] puts radio channels second.
 		for key in sort_list:
 			service = self.tmp_services_dict[key]
@@ -1028,7 +1025,7 @@ class JoyneScan(Screen): # the downloader
 	def cleanServiceName(self, text):
 		control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
 		control_char_re = re.compile('[%s]' % re.escape(control_chars))
-		return control_char_re.sub('', text.decode('latin-1').encode("utf8"))
+		return control_char_re.sub('', text).decode('latin-1').encode("utf8")
 
 	def createBouquet(self):
 		self.handleBouquetIndex()
