@@ -995,24 +995,15 @@ class JoyneScan(Screen): # the downloader
 			service["transport_stream_id"],
 			service["original_network_id"],
 			service["namespace"],
-			(("#DESCRIPTION %s\n" % self.utf8_convert(service["service_name"])) if self.config.force_service_name.value else ""))
+			(("#DESCRIPTION %s\n" % self.cleanServiceName(service["service_name"])) if self.config.force_service_name.value else ""))
 
 	def spacer(self):
 		return "#SERVICE 1:320:0:0:0:0:0:0:0:0:\n#DESCRIPTION  \n"
 
-	def utf8_convert(self, text):
-		for encoding in ["utf8","latin-1"]:
-			try:
-				text.decode(encoding=encoding)
-			except UnicodeDecodeError:
-				encoding = None
-			else:
-				break
-		if encoding == "utf8":
-			return text
-		if encoding is None:
-			encoding = "utf8"
-		return text.decode(encoding, errors="ignore").encode("utf8")
+	def cleanServiceName(self, text):
+		control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
+		control_char_re = re.compile('[%s]' % re.escape(control_chars))
+		return control_char_re.sub('', text.decode('latin-1').encode("utf8"))
 
 	def createBouquet(self):
 		self.handleBouquetIndex()
