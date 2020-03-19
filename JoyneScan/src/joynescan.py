@@ -111,7 +111,7 @@ class JoyneScan(Screen): # the downloader
 		self.bat_table_id = 0x4a # DVB default
 
 		self.SDTscanList = [] # list of transponders we are going to scan the SDT of.
-		self.tmp_services_dict = {} # services found in SDTs of the scanned transponders
+		self.tmp_services_dict = {} # services found in SDTs of the scanned transponders. Keys, TSID:ONID:SID  in hex 
 
 		self.polarization_dict = {
 			eDVBFrontendParametersSatellite.Polarisation_Horizontal: "H",
@@ -192,6 +192,7 @@ class JoyneScan(Screen): # the downloader
 #			self.processServiceList()
 			self.processBAT()
 			self.addTransponders()
+			self.fixServiceNames()
 			self.addNamespaceToServices()
 			self.addLCNsToServices()
 			self.addServicesToTransponders()
@@ -819,6 +820,12 @@ class JoyneScan(Screen): # the downloader
 			self["progress"].setValue(self.progresscurrent)
 
 		return transponders_count
+
+	def fixServiceNames(self):
+		from servicenames import ServiceNames
+		for servicekey in ServiceNames.keys():
+			if servicekey in self.tmp_services_dict:
+				self.tmp_services_dict[servicekey]["service_name"] = ServiceNames[servicekey]
 
 	def addNamespaceToServices(self):
 		servicekeys = self.tmp_services_dict.keys()
