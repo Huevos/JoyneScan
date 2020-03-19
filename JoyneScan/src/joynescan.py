@@ -661,7 +661,7 @@ class JoyneScan(Screen): # the downloader
 			# A miss match happens when the NIT table on the home transponder has broken data.
 			# If there is a miss match correct it now, before the data is "used in anger".
 			if self.transpondercurrent["transport_stream_id"] != section["header"]["transport_stream_id"]:
-				print "[%s] ONID/TSID mismatch. Supposed to be reading: 0x%x/0x%x, Currently reading: 0x%x/0x%x. Will accept current data as  authoritative." % (self.debugName, self.transpondercurrent["original_network_id"], self.transpondercurrent["transport_stream_id"], section["header"]["original_network_id"], section["header"]["transport_stream_id"])
+				print "[%s] readSDT ONID/TSID mismatch. Supposed to be reading: 0x%x/0x%x, Currently reading: 0x%x/0x%x. Will accept current data as  authoritative." % (self.debugName, self.transpondercurrent["original_network_id"], self.transpondercurrent["transport_stream_id"], section["header"]["original_network_id"], section["header"]["transport_stream_id"])
 				self.transpondercurrent["real_transport_stream_id"] = section["header"]["transport_stream_id"]
 
 			if section["header"]["table_id"] == self.sdt_current_table_id and not sdt_current_completed:
