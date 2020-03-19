@@ -279,12 +279,12 @@ class LamedbWriter():
 				if "service_flags" in service.keys() and service["service_flags"] > 0:
 					service_flags = ",f:%x" % service["service_flags"]
 
-				if 'service_line' in service.keys():
+				if 'service_line' in service.keys(): # from lamedb
 					if len(service["service_line"]):
 						lamedblist.append(",%s\n" % self.utf8_convert(service["service_line"]))
 					else:
 						lamedblist.append("\n")
-				else:
+				else: # from scanner
 					lamedblist.append(",p:%s%s%s\n" % (provider_name, service_ca, service_flags))
 				services_count += 1
 
