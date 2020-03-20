@@ -15,9 +15,12 @@ PROVIDERS = {
 			"modulation": eDVBFrontendParametersSatellite.Modulation_8PSK,
 			"roll_off": eDVBFrontendParametersSatellite.RollOff_alpha_0_20,
 			"original_network_id": 0x009e,
-			"transport_stream_id": 0xc35a,},
+			"transport_stream_id": 0xc35a,
+		},
 		"bat": {
-			"BouquetID": 0x1,},},
+			"BouquetID": 0x1,
+		},
+	},
 	"Joyne_NL": {
 		"name": _("Joyne NL"), 
 		"transponder": {
@@ -30,9 +33,12 @@ PROVIDERS = {
 			"modulation": eDVBFrontendParametersSatellite.Modulation_8PSK,
 			"roll_off": eDVBFrontendParametersSatellite.RollOff_alpha_0_20,
 			"original_network_id": 0x009e,
-			"transport_stream_id": 0xc364,},
+			"transport_stream_id": 0xc364,
+		},
 		"bat": {
-			"BouquetID": 0x1,},},
+			"BouquetID": 0x1,
+		},
+	},
 	"Canal_Digitaal_HD": {
 		"name": _("Canal Digitaal HD"), 
 		"transponder": {
@@ -46,6 +52,11 @@ PROVIDERS = {
 			"roll_off": eDVBFrontendParametersSatellite.RollOff_alpha_0_35,
 			"original_network_id": 0x0035,
 			"transport_stream_id": 0x0451,
+		},
+		"nit": {
 			"nit_pid": 0x385,
 			"nit_current_table_id": 0xbc,
-			"nit_other_table_id": 0x00,},},}
+			"nit_other_table_id": 0x00,
+		},
+	},
+}
