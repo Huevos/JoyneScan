@@ -83,7 +83,6 @@ class JoyneScan(Screen): # the downloader
 		self.transponders_dict = {} # overwritten in firstExec
 		self.services_dict = {} # Services waiting to be written to bouquet file. Keys of this dict are LCNs
 		self.tmp_service_list = [] # holds the service list from NIT (for cross referencing)
-#		self.service_list_dict = {} # keyed version of self.tmp_service_list. Keys, TSID:ONID:SID  in hex
 		self.tmp_bat_content = [] # holds bat data waiting for processing
 		self.logical_channel_number_dict = {} # Keys, TSID:ONID:SID in hex
 		self.ignore_visible_service_flag = False # make this a user override later if found necessary. Visible service flag is currently available in the NIT and BAT on Joyne home transponders
@@ -188,7 +187,6 @@ class JoyneScan(Screen): # the downloader
 				self["action"].setText(_('Bouquets generation...'))
 				self["status"].setText(_("Services: %d video - %d radio") % (self.video_services, self.radio_services))
 			self.correctTsidErrors() # correct errors due to "broken" NIT on home transponder
-#			self.processServiceList()
 			self.processBAT()
 			self.addTransponders()
 			self.fixServiceNames()
@@ -539,7 +537,6 @@ class JoyneScan(Screen): # the downloader
 		if not inStandby:
 			self["status"].setText(_("transponders found: %d") % transponders_count)
 
-		# self.processServiceList([x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["serviceList"]])
 		self.tmp_service_list = [x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["serviceList"]]
 
 		if read_other_section and len(nit_other_completed):
@@ -763,13 +760,6 @@ class JoyneScan(Screen): # the downloader
 				service["transport_stream_id"] = errors_dict[key]
 			tmp_bat_content.append(service)
 		self.tmp_bat_content = tmp_bat_content
-
-#	def processServiceList(self):
-#		for service in self.tmp_service_list:
-#			key = "%x:%x:%x" % (service["transport_stream_id"], service["original_network_id"], service["service_id"])
-#			self.service_list_dict[key] = service
-#		if self.extra_debug:
-#			print "[%s] Service list" % self.debugName, self.service_list_dict
 
 	def processTransponders(self, transponderList):
 		transponders_count = 0
