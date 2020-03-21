@@ -85,7 +85,6 @@ class JoyneScan(Screen): # the downloader
 		self.tmp_service_list = [] # holds the service list from NIT (for cross referencing)
 #		self.service_list_dict = {} # keyed version of self.tmp_service_list. Keys, TSID:ONID:SID  in hex
 		self.tmp_bat_content = [] # holds bat data waiting for processing
-		self.namespace_dict = {} # to store namespace when sub network is enabled. Keys, TSID:ONID in hex
 		self.logical_channel_number_dict = {} # Keys, TSID:ONID:SID in hex
 		self.ignore_visible_service_flag = False # make this a user override later if found necessary. Visible service flag is currently available in the NIT and BAT on Joyne home transponders
 		self.VIDEO_ALLOWED_TYPES = [1, 4, 5, 17, 22, 24, 25, 27, 31, 135] # 4 and 5 NVOD, 17 MPEG-2 HD digital television service, 22 advanced codec SD digital television service, 24 advanced codec SD NVOD reference service, 27 advanced codec HD NVOD reference service, 31 ???, seems to be used on Astra 1 for some UHD/4K services
@@ -193,7 +192,6 @@ class JoyneScan(Screen): # the downloader
 			self.processBAT()
 			self.addTransponders()
 			self.fixServiceNames()
-			self.addNamespaceToServices()
 			self.addLCNsToServices()
 			self.addServicesToTransponders()
 			self["actions"].setEnabled(False) # disable action map here so we can't abort half way through writing result to settings files
@@ -690,6 +688,7 @@ class JoyneScan(Screen): # the downloader
 			self.manager()
 			return
 
+		namespace = self.SDTscanList[self.index - self.actionsListOrigLength]["namespace"] # this is corrected namespace after any resync from satellites.xml, (with subnet applied if so coonfigured or applicable)
 		for i in range(len(sdt_current_content)):
 			service = sdt_current_content[i]
 
@@ -697,6 +696,7 @@ class JoyneScan(Screen): # the downloader
 				continue
 
 			service["flags"] = 0
+			service["namespace"] = namespace
 
 			if service["service_type"] in self.VIDEO_ALLOWED_TYPES:
 				self.video_services += 1
@@ -827,16 +827,6 @@ class JoyneScan(Screen): # the downloader
 			if servicekey in self.tmp_services_dict:
 				self.tmp_services_dict[servicekey]["service_name"] = ServiceNames[servicekey]
 
-	def addNamespaceToServices(self):
-		servicekeys = self.tmp_services_dict.keys()
-		for servicekey in servicekeys:
-			namespace_key = "%x:%x" % (self.tmp_services_dict[servicekey]["transport_stream_id"], self.tmp_services_dict[servicekey]["original_network_id"])
-			if namespace_key not in self.namespace_dict: # Can this really happen?
-				print "[%s] namespace_key not in namespace_dict" % self.debugName, self.tmp_services_dict[servicekey]
-				del self.tmp_services_dict[servicekey]
-				continue
-			self.tmp_services_dict[servicekey]["namespace"] = self.namespace_dict[namespace_key]
-
 	def addServicesToTransponders(self):
 		servicekeys = self.tmp_services_dict.keys()
 		for servicekey in servicekeys:
@@ -882,10 +872,6 @@ class JoyneScan(Screen): # the downloader
 			if key in self.transponders_dict:
 				transponder["services"] = self.transponders_dict[key]["services"]
 			self.transponders_dict[key] = transponder
-
-			namespace_key = "%x:%x" % (transponder["transport_stream_id"], transponder["original_network_id"])
-			if namespace_key not in self.namespace_dict:
-				self.namespace_dict[namespace_key] = transponder["namespace"]
 
 	def syncTransponder(self, transponder):
 		# this allows us to sync with data in satellites.xml to avoid crap data in broken SI tables
