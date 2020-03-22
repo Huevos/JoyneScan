@@ -357,7 +357,10 @@ class JoyneScan(Screen): # the downloader
 			return
 		elif self.dict["tuner_state"] in ("LOSTLOCK", "FAILED"):
 			print "[%s][checkTunerLock] TUNING FAILED" % self.debugName
-			self.showError(_("Tuning failed on %s") % str(self.transpondercurrent["frequency"]/1000))
+			if self.actionsList[self.index] == "read SDTs": # if we can't tune a transponder just skip it (like enigma does)
+				self.manager()
+			else:
+				self.showError(_("Tuning failed on %s") % str(self.transpondercurrent["frequency"]/1000))
 			return
 
 		self.lockcounter += 1
