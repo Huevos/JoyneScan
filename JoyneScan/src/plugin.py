@@ -34,22 +34,22 @@ config.plugins.joynescan.sync_with_known_tps = ConfigYesNo(default = True)
 config.plugins.joynescan.force_service_name = ConfigYesNo(default = False)
 
 
-def startdownload(session, **kwargs):
+def startdownload(session, **kwargs): # Called from extensions menu if this option is active
 	session.open(JoyneScan)
 
-def JoyneScanStart(menuid, **kwargs):
+def JoyneScanStart(menuid, **kwargs): # Menu position of plugin setup screen
 	if menuid == "scan":
 		return [(_("JoyneScan"), JoyneScanMain, "JoyneScan_Setup", 11, True)]
 	return []
 
-def JoyneScanMain(session, close=None, **kwargs):
+def JoyneScanMain(session, close=None, **kwargs): # calls setup screen
 	session.openWithCallback(boundFunction(JoyneScanCallback, close), JoyneScan_Setup)
 
-def JoyneScanCallback(close=None, answer=None):
+def JoyneScanCallback(close=None, answer=None): # Called on exiting setup screen. Should force a recursive close on a succsssful scan.
 	if close and answer:
 		close(True)
 
-def JoyneScanWakeupTime():
+def JoyneScanWakeupTime(): # Called on shutdown (going into deep standby) to tell the box when to wake from deep
 	print "[JoyneScan] next wakeup due %d" % config.plugins.joynescan.nextscheduletime.value
 	return config.plugins.joynescan.nextscheduletime.value > 0 and config.plugins.joynescan.nextscheduletime.value or -1
 
