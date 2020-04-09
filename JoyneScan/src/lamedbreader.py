@@ -149,7 +149,13 @@ class LamedbReader():
 			key = "%x:%x:%x" % (service["namespace"], service["transport_stream_id"], service["original_network_id"])
 			if key not in transponders:
 				continue
-			transponders[key]["services"][service["service_id"]] = service
+
+			# The original (correct) code
+			# transponders[key]["services"][service["service_id"]] = service
+			
+			# Dirty hack to work around the (well known) service type bug in lamedb/enigma2
+			transponders[key]["services"]["%x:%x" % (service["service_type"], service["service_id"])] = service
+
 			services_count += 1
 
 		print "[JoyneScan-LamedbReader] Read %d transponders and %d services" % (transponders_count, services_count)
@@ -266,8 +272,14 @@ class LamedbReader():
 				key = "%x:%x:%x" % (service["namespace"], service["transport_stream_id"], service["original_network_id"])
 				if key not in transponders:
 					continue
-				transponders[key]["services"][service["service_id"]] = service
-				services_count += 1
+
+			# The original (correct) code
+			# transponders[key]["services"][service["service_id"]] = service
+			
+			# Dirty hack to work around the (well known) service type bug in lamedb/enigma2
+			transponders[key]["services"]["%x:%x" % (service["service_type"], service["service_id"])] = service
+
+			services_count += 1
 
 		print "[JoyneScan-LamedbReader] Read %d transponders and %d services" % (transponders_count, services_count)
 		return transponders

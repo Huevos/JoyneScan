@@ -830,7 +830,11 @@ class JoyneScan(Screen): # the downloader
 				continue
 			if "services" not in self.transponders_dict[tpkey]: # create a services dict on the transponder if one does not currently exist
 				self.transponders_dict[tpkey]["services"] = {}
-			self.transponders_dict[tpkey]["services"][self.tmp_services_dict[servicekey]["service_id"]] = self.tmp_services_dict[servicekey]
+			# The original (correct) code
+			# self.transponders_dict[tpkey]["services"][self.tmp_services_dict[servicekey]["service_id"]] = self.tmp_services_dict[servicekey]
+			
+			# Dirty hack to work around the (well known) service type bug in lamedb/enigma2
+			self.transponders_dict[tpkey]["services"]["%x:%x" % (self.tmp_services_dict[servicekey]["service_type"], self.tmp_services_dict[servicekey]["service_id"])] = self.tmp_services_dict[servicekey]
 
 	def addLCNsToServices(self):
 		servicekeys = self.tmp_services_dict.keys()
