@@ -2,7 +2,7 @@
 from . import _
 
 from Components.ActionMap import ActionMap
-from Components.config import config, getConfigListEntry, configfile
+from Components.config import config, getConfigListEntry, configfile, ConfigYesNo
 from Components.ConfigList import ConfigListScreen
 from Components.Label import Label
 from Components.NimManager import nimmanager
@@ -1140,6 +1140,8 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 
 		self["description"] = Label("")
 
+		self.showAdvancedOptions = ConfigYesNo(default = False)
+
 		self.createSetup()
 
 		if not self.selectionChanged in self["config"].onSelectionChanged:
@@ -1151,8 +1153,6 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 		self.list = []
 
 		self.list.append(getConfigListEntry(_("Provider"), self.config.provider, _('Select the provider you wish to scan.')))
-		self.list.append(getConfigListEntry(_("Show in extensions menu"), self.config.extensions, _('When enabled, this allows you start a Joyne update from the extensions list.')))
-
 		self.list.append(getConfigListEntry(_("Scheduled fetch"), self.config.schedule, _("Set up a task scheduler to periodically update Joyne data.")))
 		if self.config.schedule.value:
 			self.list.append(getConfigListEntry(indent + _("Schedule time of day"), self.config.scheduletime, _("Set the time of day to run JoyneScan.")))
@@ -1160,9 +1160,12 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 			self.list.append(getConfigListEntry(indent + _("Schedule wake from deep standby"), self.config.schedulewakefromdeep, _("If the receiver is in 'Deep Standby' when the schedule is due wake it up to run JoyneScan.")))
 			if self.config.schedulewakefromdeep.value:
 				self.list.append(getConfigListEntry(indent + _("Schedule return to deep standby"), self.config.scheduleshutdown, _("If the receiver was woken from 'Deep Standby' and is currently in 'Standby' and no recordings are in progress return it to 'Deep Standby' once the import has completed.")))
-		self.list.append(getConfigListEntry(_("Sync with known transponders"), self.config.sync_with_known_tps, _('CAUTION: Sometimes the SI tables contain rogue data. Select "yes" to sync with transponder data listed in satellites.xml. Select "no" if you trust the SI data. Default is "yes". Only change this if you understand why you are doing it.')))
-		self.list.append(getConfigListEntry(_("Extra debug"), self.config.extra_debug, _("CAUTION: This feature is for development only. Requires debug logs to be enabled or enigma2 to be started in console mode (at debug level 4.")))
-		self.list.append(getConfigListEntry(_("Force channel name"), self.config.force_service_name, _("Switch this on only if you have issues with \"N/A\" appearing in your Joyne channel list. Switching this on means the channel name will not auto update if the broadcaster changes the channel name.")))
+		self.list.append(getConfigListEntry(_("Show advanced options"), self.showAdvancedOptions, _("Select yes to access advanced setup options.")))
+		if self.showAdvancedOptions.value:
+			self.list.append(getConfigListEntry(indent + _("Force channel name"), self.config.force_service_name, _("Switch this on only if you have issues with \"N/A\" appearing in your Joyne channel list. Switching this on means the channel name will not auto update if the broadcaster changes the channel name.")))
+			self.list.append(getConfigListEntry(indent + _("Sync with known transponders"), self.config.sync_with_known_tps, _('CAUTION: Sometimes the SI tables contain rogue data. Select "yes" to sync with transponder data listed in satellites.xml. Select "no" if you trust the SI data. Default is "yes". Only change this if you understand why you are doing it.')))
+			self.list.append(getConfigListEntry(indent + _("Show in extensions menu"), self.config.extensions, _('When enabled, this allows you start a Joyne update from the extensions list.')))
+			self.list.append(getConfigListEntry(indent + _("Extra debug"), self.config.extra_debug, _("CAUTION: This feature is for development only. Requires debug logs to be enabled or enigma2 to be started in console mode (at debug level 4.")))
 
 
 
@@ -1213,7 +1216,7 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 	def changedEntry(self):
 		for x in self.onChangedEntry:
 			x()
-		if self["config"].getCurrent() and len(self["config"].getCurrent()) > 1 and self["config"].getCurrent()[1] in (self.config.schedule, self.config.schedulewakefromdeep):
+		if self["config"].getCurrent() and len(self["config"].getCurrent()) > 1 and self["config"].getCurrent()[1] in (self.config.schedule, self.config.schedulewakefromdeep, self.showAdvancedOptions):
 			self.createSetup()
 
 	def getCurrentEntry(self):
