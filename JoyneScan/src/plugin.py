@@ -50,8 +50,8 @@ def JoyneScanCallback(close=None, answer=None): # Called on exiting setup screen
 		close(True)
 
 def JoyneScanWakeupTime(): # Called on shutdown (going into deep standby) to tell the box when to wake from deep
-	print "[JoyneScan] next wakeup due %d" % config.plugins.joynescan.nextscheduletime.value
-	return config.plugins.joynescan.nextscheduletime.value > 0 and config.plugins.joynescan.nextscheduletime.value or -1
+	print "[JoyneScan] next wake up due %d" % (config.plugins.joynescan.schedule.value and config.plugins.joynescan.schedulewakefromdeep.value and config.plugins.joynescan.nextscheduletime.value > 0 and config.plugins.joynescan.nextscheduletime.value or -1)
+	return config.plugins.joynescan.schedule.value and config.plugins.joynescan.schedulewakefromdeep.value and config.plugins.joynescan.nextscheduletime.value > 0 and config.plugins.joynescan.nextscheduletime.value or -1
 
 def Plugins(**kwargs):
 	plist = []

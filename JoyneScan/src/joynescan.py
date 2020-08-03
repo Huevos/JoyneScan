@@ -1309,7 +1309,7 @@ def Scheduleautostart(reason, session=None, **kwargs):
 	if reason == 0:
 		if config.plugins.joynescan.schedule.value:
 			# check if box was woken up by a timer, if so, check if this plugin set this timer. This is not conclusive.
-			if session.nav.wasTimerWakeup() and abs(config.plugins.joynescan.nextscheduletime.value - time()) <= 450:
+			if session.nav.wasTimerWakeup() and config.plugins.joynescan.schedulewakefromdeep.value and abs(config.plugins.joynescan.nextscheduletime.value - time()) <= 450:
 				wasScheduleTimerWakeup = True
 				# if box is not in standby do it now
 				from Screens.Standby import Standby, inStandby
