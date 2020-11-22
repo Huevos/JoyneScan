@@ -1165,7 +1165,7 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 			self.list.append(getConfigListEntry(indent + _("Force channel name"), self.config.force_service_name, _("Switch this on only if you have issues with \"N/A\" appearing in your Joyne channel list. Switching this on means the channel name will not auto update if the broadcaster changes the channel name.")))
 			self.list.append(getConfigListEntry(indent + _("Sync with known transponders"), self.config.sync_with_known_tps, _('CAUTION: Sometimes the SI tables contain rogue data. Select "yes" to sync with transponder data listed in satellites.xml. Select "no" if you trust the SI data. Default is "yes". Only change this if you understand why you are doing it.')))
 			self.list.append(getConfigListEntry(indent + _("Show in extensions menu"), self.config.extensions, _('When enabled, this allows you start a Joyne update from the extensions list.')))
-			self.list.append(getConfigListEntry(indent + _("Extra debug"), self.config.extra_debug, _("CAUTION: This feature is for development only. Requires debug logs to be enabled or enigma2 to be started in console mode (at debug level 4.")))
+			self.list.append(getConfigListEntry(indent + _("Extra debug"), self.config.extra_debug, _("CAUTION: This feature is for development only. Requires debug logs to be enabled or enigma2 to be started in console mode (at debug level 4).")))
 
 
 
