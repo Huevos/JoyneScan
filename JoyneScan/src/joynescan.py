@@ -29,7 +29,7 @@ import re
 
 
 #from Plugins.SystemPlugins.AutoBouquetsMaker.scanner import dvbreader
-import dvbreader
+from . import dvbreader
 
 
 class JoyneScan(Screen): # the downloader
