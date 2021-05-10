@@ -23,7 +23,7 @@ class JoyneScan_About(Screen):
 
 		self["key_red"] = StaticText(_("Close"))
 
-		from version import PLUGIN_VERSION
+		from .version import PLUGIN_VERSION
 
 		credits = [
 			"JoyneScan %s (c) 2020 \n" % PLUGIN_VERSION,

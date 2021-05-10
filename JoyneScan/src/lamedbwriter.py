@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 import os, codecs, re
 
 from enigma import eDVBFrontendParametersSatellite
@@ -6,7 +7,7 @@ from enigma import eDVBFrontendParametersSatellite
 class LamedbWriter():
 
 	def writeLamedb(self, path, transponders, filename="lamedb"):
-		print "[JoyneScan-LamedbWriter] Writing lamedb..."
+		print("[JoyneScan-LamedbWriter] Writing lamedb...")
 
 		transponders_count = 0
 		services_count = 0
@@ -15,9 +16,9 @@ class LamedbWriter():
 		lamedblist.append("eDVB services /4/\n")
 		lamedblist.append("transponders\n")
 
-		for key in transponders.keys():
+		for key in list(transponders.keys()):
 			transponder = transponders[key]
-			if "services" not in transponder.keys() or len(transponder["services"]) < 1:
+			if "services" not in list(transponder.keys()) or len(transponder["services"]) < 1:
 				continue
 			lamedblist.append("%08x:%04x:%04x\n" %
 				(transponder["namespace"],
@@ -58,7 +59,7 @@ class LamedbWriter():
 								eDVBFrontendParametersSatellite.PLS_Gold,
 								eDVBFrontendParametersSatellite.PLS_Default_Gold_Code)
 						except AttributeError as err:
-							print "[ABM-BouquetsWriter] some images are still not multistream aware after all this time",  err
+							print("[ABM-BouquetsWriter] some images are still not multistream aware after all this time",  err)
 					lamedblist.append("\ts %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d%s%s\n" %
 						(transponder["frequency"],
 						transponder["symbol_rate"],
@@ -100,12 +101,12 @@ class LamedbWriter():
 			transponders_count += 1
 
 		lamedblist.append("end\nservices\n")
-		for key in transponders.keys():
+		for key in list(transponders.keys()):
 			transponder = transponders[key]
-			if "services" not in transponder.keys():
+			if "services" not in list(transponder.keys()):
 				continue
 
-			for key2 in transponder["services"].keys():
+			for key2 in list(transponder["services"].keys()):
 				service = transponder["services"][key2]
 
 				lamedblist.append("%04x:%08x:%04x:%04x:%d:%d%s\n" %
@@ -117,9 +118,9 @@ class LamedbWriter():
 					service["flags"],
 					":%x" % service["ATSC_source_id"] if "ATSC_source_id" in service else ""))
 
-				control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
+				control_chars = ''.join(map(chr, list(range(0,32)) + list(range(127,160))))
 				control_char_re = re.compile('[%s]' % re.escape(control_chars))
-				if 'provider_name' in service.keys():
+				if 'provider_name' in list(service.keys()):
 					service_name = control_char_re.sub('', service["service_name"]).decode('latin-1').encode("utf8")
 					provider_name = control_char_re.sub('', service["provider_name"]).decode('latin-1').encode("utf8")
 				else:
@@ -128,14 +129,14 @@ class LamedbWriter():
 				lamedblist.append("%s\n" % service_name)
 
 				service_ca = ""
-				if "free_ca" in service.keys() and service["free_ca"] != 0:
+				if "free_ca" in list(service.keys()) and service["free_ca"] != 0:
 					service_ca = ",C:0000"
 
 				service_flags = ""
-				if "service_flags" in service.keys() and service["service_flags"] > 0:
+				if "service_flags" in list(service.keys()) and service["service_flags"] > 0:
 					service_flags = ",f:%x" % service["service_flags"]
 
-				if 'service_line' in service.keys():
+				if 'service_line' in list(service.keys()):
 					lamedblist.append(self.utf8_convert("%s\n" % service["service_line"]))
 				else:
 					lamedblist.append("p:%s%s%s\n" % (provider_name, service_ca, service_flags))
@@ -147,10 +148,10 @@ class LamedbWriter():
 		lamedb.close()
 		del lamedblist
 
-		print "[JoyneScan-LamedbWriter] Wrote %d transponders and %d services" % (transponders_count, services_count)
+		print("[JoyneScan-LamedbWriter] Wrote %d transponders and %d services" % (transponders_count, services_count))
 
 	def writeLamedb5(self, path, transponders, filename="lamedb5"):
-		print "[JoyneScan-LamedbWriter] Writing lamedb V5..."
+		print("[JoyneScan-LamedbWriter] Writing lamedb V5...")
 
 		transponders_count = 0
 		services_count = 0
@@ -164,9 +165,9 @@ class LamedbWriter():
 		lamedblist.append("#     DVBC  FEPARMS:   c:frequency:symbol_rate:inversion:modulation:fec_inner:flags:system\n")
 		lamedblist.append('# Services: s:service_id:dvb_namespace:transport_stream_id:original_network_id:service_type:service_number:source_id,"service_name"[,p:provider_name][,c:cached_pid]*[,C:cached_capid]*[,f:flags]\n')
 
-		for key in transponders.keys():
+		for key in list(transponders.keys()):
 			transponder = transponders[key]
-			if "services" not in transponder.keys() or len(transponder["services"]) < 1:
+			if "services" not in list(transponder.keys()) or len(transponder["services"]) < 1:
 				continue
 			lamedblist.append("t:%08x:%04x:%04x," %
 				(transponder["namespace"],
@@ -200,7 +201,7 @@ class LamedbWriter():
 									transponder["pls_code"],
 									transponder["pls_mode"])
 						except AttributeError as err:
-							print "[-BouquetsWriter] some images are still not multistream aware after all this time", err
+							print("[-BouquetsWriter] some images are still not multistream aware after all this time", err)
 					if "t2mi_plp_id" in transponder and "t2mi_pid" in transponder:
 						t2mi = ',T2MI:%d:%d' % (
 						transponder["t2mi_plp_id"],
@@ -244,12 +245,12 @@ class LamedbWriter():
 					transponder["system"]))
 			transponders_count += 1
 
-		for key in transponders.keys():
+		for key in list(transponders.keys()):
 			transponder = transponders[key]
-			if "services" not in transponder.keys():
+			if "services" not in list(transponder.keys()):
 				continue
 
-			for key2 in transponder["services"].keys():
+			for key2 in list(transponder["services"].keys()):
 				service = transponder["services"][key2]
 
 				lamedblist.append("s:%04x:%08x:%04x:%04x:%d:%d%s," %
@@ -261,9 +262,9 @@ class LamedbWriter():
 					service["flags"],
 					":%x" % service["ATSC_source_id"] if "ATSC_source_id" in service else ":0"))
 
-				control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
+				control_chars = ''.join(map(chr, list(range(0,32)) + list(range(127,160))))
 				control_char_re = re.compile('[%s]' % re.escape(control_chars))
-				if 'provider_name' in service.keys():
+				if 'provider_name' in list(service.keys()):
 					service_name = control_char_re.sub('', service["service_name"]).decode('latin-1').encode("utf8")
 					provider_name = control_char_re.sub('', service["provider_name"]).decode('latin-1').encode("utf8")
 				else:
@@ -272,14 +273,14 @@ class LamedbWriter():
 				lamedblist.append('"%s"' % service_name)
 
 				service_ca = ""
-				if "free_ca" in service.keys() and service["free_ca"] != 0:
+				if "free_ca" in list(service.keys()) and service["free_ca"] != 0:
 					service_ca = ",C:0000"
 
 				service_flags = ""
-				if "service_flags" in service.keys() and service["service_flags"] > 0:
+				if "service_flags" in list(service.keys()) and service["service_flags"] > 0:
 					service_flags = ",f:%x" % service["service_flags"]
 
-				if 'service_line' in service.keys(): # from lamedb
+				if 'service_line' in list(service.keys()): # from lamedb
 					if len(service["service_line"]):
 						lamedblist.append(",%s\n" % self.utf8_convert(service["service_line"]))
 					else:
@@ -293,7 +294,7 @@ class LamedbWriter():
 		lamedb.close()
 		del lamedblist
 
-		print "[JoyneScan-LamedbWriter] Wrote %d transponders and %d services" % (transponders_count, services_count)
+		print("[JoyneScan-LamedbWriter] Wrote %d transponders and %d services" % (transponders_count, services_count))
 
 	def utf8_convert(self, text):
 		for encoding in ["utf8","latin-1"]:

@@ -1,4 +1,5 @@
 # for localized messages
+from __future__ import print_function
 from . import _
 
 from Components.ActionMap import ActionMap
@@ -14,11 +15,11 @@ from Components.Sources.Progress import Progress
 from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 
-from about import JoyneScan_About
-from downloadbar import downloadBar
-from lamedbreader import LamedbReader
-from lamedbwriter import LamedbWriter
-from providers import PROVIDERS
+from .about import JoyneScan_About
+from .downloadbar import downloadBar
+from .lamedbreader import LamedbReader
+from .lamedbwriter import LamedbWriter
+from .providers import PROVIDERS
 
 from enigma import eTimer, eDVBDB, eDVBFrontendParametersSatellite, eDVBFrontendParameters, eDVBResourceManager
 
@@ -39,8 +40,8 @@ class JoyneScan(Screen): # the downloader
 		self.debugName = "JoyneScan"
 		self.extra_debug = self.config.extra_debug.value
 		self.screentitle = _("Joyne Scan")
-		print "[%s][__init__] Starting..." % self.debugName
-		print "[%s][__init__] args" % self.debugName, args
+		print("[%s][__init__] Starting..." % self.debugName)
+		print("[%s][__init__] args" % self.debugName, args)
 		self.session = session
 		Screen.__init__(self, session)
 		Screen.setTitle(self, self.screentitle)
@@ -201,7 +202,7 @@ class JoyneScan(Screen): # the downloader
 		from Screens.Standby import inStandby
 		if not inStandby:
 			self["action"].setText(_("Tune %s %s %s %s...") % (self.bouquetName, self.getOrbPosHuman(self.transpondercurrent["orbital_position"]), str(self.transpondercurrent["frequency"]/1000), self.polarization_dict.get(self.transpondercurrent["polarization"],"")))
-		print "[%s][getFrontend] searching for available tuner" % self.debugName
+		print("[%s][getFrontend] searching for available tuner" % self.debugName)
 		nimList = []
 		for nim in nimmanager.nim_slots:
 			if not nim.isCompatible("DVB-S") or \
@@ -212,13 +213,13 @@ class JoyneScan(Screen): # the downloader
 			nimList.append(nim.slot)
 
 		if len(nimList) == 0: # No nims found for this satellite
-			print "[%s][getFrontend] No compatible tuner found" % self.debugName
+			print("[%s][getFrontend] No compatible tuner found" % self.debugName)
 			self.showError(_("No compatible tuner found"))
 			return
 
 		resmanager = eDVBResourceManager.getInstance()
 		if not resmanager:
-			print "[%s][getFrontend] Cannot retrieve Resource Manager instance" % self.debugName
+			print("[%s][getFrontend] Cannot retrieve Resource Manager instance" % self.debugName)
 			self.showError(_('Cannot retrieve Resource Manager instance'))
 			return
 
@@ -226,7 +227,7 @@ class JoyneScan(Screen): # the downloader
 		if self.session.pipshown:
 			self.session.pipshown = False
 			del self.session.pip
-			print "[%s][getFrontend] Stopping PIP." % self.debugName
+			print("[%s][getFrontend] Stopping PIP." % self.debugName)
 
 		# stop currently playing service if it is using a tuner in ("loopthrough", "satposdepends")
 		currentlyPlayingNIM = None
@@ -241,7 +242,7 @@ class JoyneScan(Screen): # the downloader
 					self.postScanService = self.session.nav.getCurrentlyPlayingServiceReference()
 					self.session.nav.stopService()
 					currentlyPlayingNIM = None
-					print "[%s][getFrontend] The active service was using a %s tuner, so had to be stopped (slot id %s)." % (self.debugName, nimConfigMode, currentlyPlayingNIM)
+					print("[%s][getFrontend] The active service was using a %s tuner, so had to be stopped (slot id %s)." % (self.debugName, nimConfigMode, currentlyPlayingNIM))
 		del frontendInfo
 		del currentService
 
@@ -259,7 +260,7 @@ class JoyneScan(Screen): # the downloader
 
 			self.rawchannel = resmanager.allocateRawChannel(slotid)
 			if self.rawchannel:
-				print "[%s][getFrontend] Nim found on slot id %d with sat %s" % (self.debugName, slotid, nimmanager.getSatName(self.transpondercurrent["orbital_position"]))
+				print("[%s][getFrontend] Nim found on slot id %d with sat %s" % (self.debugName, slotid, nimmanager.getSatName(self.transpondercurrent["orbital_position"])))
 				current_slotid = slotid
 				break
 
@@ -267,7 +268,7 @@ class JoyneScan(Screen): # the downloader
 				break
 
 		if current_slotid == -1:
-			print "[%s][getFrontend] No valid NIM found for %s" % (self.debugName, self.bouquetName)
+			print("[%s][getFrontend] No valid NIM found for %s" % (self.debugName, self.bouquetName))
 			self.showError(_('No valid NIM found for %s') % self.bouquetName)
 			return
 
@@ -275,21 +276,21 @@ class JoyneScan(Screen): # the downloader
 			# if we are here the only possible option is to close the active service
 			if currentlyPlayingNIM in nimList:
 				slotid = currentlyPlayingNIM
-				print "[%s][getFrontend] Nim found on slot id %d but it's busy. Stopping active service" % (self.debugName, slotid)
+				print("[%s][getFrontend] Nim found on slot id %d but it's busy. Stopping active service" % (self.debugName, slotid))
 				self.postScanService = self.session.nav.getCurrentlyPlayingServiceReference()
 				self.session.nav.stopService()
 				self.rawchannel = resmanager.allocateRawChannel(slotid)
 				if self.rawchannel:
-					print "[%s][getFrontend] The active service was stopped, and the NIM is now free to use." % self.debugName
+					print("[%s][getFrontend] The active service was stopped, and the NIM is now free to use." % self.debugName)
 					current_slotid = slotid
 
 			if not self.rawchannel:
 				if self.session.nav.RecordTimer.isRecording():
-					print "[%s][getFrontend] Cannot free NIM because a recording is in progress" % self.debugName
+					print("[%s][getFrontend] Cannot free NIM because a recording is in progress" % self.debugName)
 					self.showError(_('Cannot free NIM because a recording is in progress'))
 					return
 				else:
-					print "[%s][getFrontend] Cannot get the NIM" % self.debugName
+					print("[%s][getFrontend] Cannot get the NIM" % self.debugName)
 					self.showError(_('Cannot get the NIM'))
 					return
 
@@ -298,10 +299,10 @@ class JoyneScan(Screen): # the downloader
 		if self.isRotorSat(current_slotid, self.transpondercurrent["orbital_position"]):
 			self.motorised = True
 			self.LOCK_TIMEOUT = self.LOCK_TIMEOUT_ROTOR
-			print "[%s][getFrontend] Motorised dish. Will wait up to %i seconds for tuner lock." % (self.debugName, self.LOCK_TIMEOUT/10)
+			print("[%s][getFrontend] Motorised dish. Will wait up to %i seconds for tuner lock." % (self.debugName, self.LOCK_TIMEOUT/10))
 		else:
 			self.LOCK_TIMEOUT = self.LOCK_TIMEOUT_FIXED
-			print "[%s][getFrontend] Fixed dish. Will wait up to %i seconds for tuner lock." % (self.debugName, self.LOCK_TIMEOUT/10)
+			print("[%s][getFrontend] Fixed dish. Will wait up to %i seconds for tuner lock." % (self.debugName, self.LOCK_TIMEOUT/10))
 
 		self.selectedNIM = current_slotid  # Remember for downloading SI tables
 
@@ -309,13 +310,13 @@ class JoyneScan(Screen): # the downloader
 
 		self.frontend = self.rawchannel.getFrontend()
 		if not self.frontend:
-			print "[%s][getFrontend] Cannot get frontend" % self.debugName
+			print("[%s][getFrontend] Cannot get frontend" % self.debugName)
 			self.showError(_('Cannot get frontend'))
 			return
 
 		self.demuxer_id = self.rawchannel.reserveDemux()
 		if self.demuxer_id < 0:
-			print "[%s][doTune] Cannot allocate the demuxer." % self.debugName
+			print("[%s][doTune] Cannot allocate the demuxer." % self.debugName)
 			self.showError(_('Cannot allocate the demuxer.'))
 			return
 
@@ -337,7 +338,7 @@ class JoyneScan(Screen): # the downloader
 		self.frontend.getFrontendStatus(self.dict)
 		if self.dict["tuner_state"] == "TUNING":
 			if self.lockcounter < 1: # only show this once in the log per retune event
-				print "[%s][checkTunerLock] TUNING" % self.debugName
+				print("[%s][checkTunerLock] TUNING" % self.debugName)
 		elif self.dict["tuner_state"] == "LOCKED":
 			if not inStandby:
 				self["action"].setText(_("Read %s %s %s %s...") % (self.bouquetName, self.getOrbPosHuman(self.transpondercurrent["orbital_position"]), str(self.transpondercurrent["frequency"]/1000), self.polarization_dict.get(self.transpondercurrent["polarization"],"")))
@@ -348,7 +349,7 @@ class JoyneScan(Screen): # the downloader
 			self.readTranspondertimer.start(100, 1)
 			return
 		elif self.dict["tuner_state"] in ("LOSTLOCK", "FAILED"):
-			print "[%s][checkTunerLock] TUNING FAILED" % self.debugName
+			print("[%s][checkTunerLock] TUNING FAILED" % self.debugName)
 			if self.actionsList[self.index] == "read SDTs": # if we can't tune a transponder just skip it (like enigma does)
 				self.manager()
 			else:
@@ -357,7 +358,7 @@ class JoyneScan(Screen): # the downloader
 
 		self.lockcounter += 1
 		if self.lockcounter > self.LOCK_TIMEOUT:
-			print "[%s][checkTunerLock] Timeout for tuner lock" % self.debugName
+			print("[%s][checkTunerLock] Timeout for tuner lock" % self.debugName)
 			self.showError(_("Timeout for tuner lock on %s") % str(self.transpondercurrent["frequency"]/1000))
 			return
 		self.locktimer.start(100, 1)
@@ -365,7 +366,7 @@ class JoyneScan(Screen): # the downloader
 	def readTransponder(self):
 		# if setup is motorized and we are about to read the NIT, first let's make sure the dish is receiving from the correct satellite.
 		if self.motorised and self.actionsList[self.index] in ("read NIT",) and not self.tsidOnidTest(self.transpondercurrent["original_network_id"], self.transpondercurrent["transport_stream_id"]):
-			print "[%s][readTransponder] Could not acquire the correct tsid/onid on the home transponder." % self.debugName
+			print("[%s][readTransponder] Could not acquire the correct tsid/onid on the home transponder." % self.debugName)
 			self.showError(_("Could not acquire the correct tsid/onid on the home transponder."))
 			return
 
@@ -376,13 +377,13 @@ class JoyneScan(Screen): # the downloader
 		elif self.actionsList[self.index] in ("read SDTs",):
 			self.readSDT()
 		else: # readBAT does not follow this code path
-			print "[%s][readTransponder] Something went terribly wrong" % self.debugName
+			print("[%s][readTransponder] Something went terribly wrong" % self.debugName)
 			self.showError(_("Something went terribly wrong"))
 
 	def tsidOnidTest(self, onid=None, tsid=None):
 		# This just grabs the tsid and onid of the current transponder.
 		# Used to confirm motorised dishes have arrived at the correct satellite before starting the download.
-		print "[%s] tsid onid test..." % self.debugName
+		print("[%s] tsid onid test..." % self.debugName)
 
 		mask = 0xff
 		tsidOnidTestTimeout = 90
@@ -392,7 +393,7 @@ class JoyneScan(Screen): # the downloader
 
 		fd = dvbreader.open(self.demuxer_device, self.sdt_pid, self.sdt_current_table_id, mask, self.selectedNIM)
 		if fd < 0:
-			print "[%s][tsidOnidTest] Cannot open the demuxer_device '%s'" % (self.debugName, demuxer_device)
+			print("[%s][tsidOnidTest] Cannot open the demuxer_device '%s'" % (self.debugName, demuxer_device))
 			self.showError(_('Cannot open the demuxer'))
 			return
 
@@ -401,7 +402,7 @@ class JoyneScan(Screen): # the downloader
 
 		while True:
 			if datetime.datetime.now() > timeout:
-				print "[%s][tsidOnidTest] Timed out checking tsid onid" % self.debugName
+				print("[%s][tsidOnidTest] Timed out checking tsid onid" % self.debugName)
 				break
 
 			section = dvbreader.read_sdt(fd, self.sdt_current_table_id, 0x00)
@@ -411,7 +412,7 @@ class JoyneScan(Screen): # the downloader
 
 			if section["header"]["table_id"] == self.sdt_current_table_id:
 				passed_test = (onid is None or onid == section["header"]["original_network_id"]) and (tsid is None or tsid == section["header"]["transport_stream_id"])
-				print "[%s][tsidOnidTest] tsid: %d, onid: %d" % (self.debugName, section["header"]["transport_stream_id"], section["header"]["original_network_id"])
+				print("[%s][tsidOnidTest] tsid: %d, onid: %d" % (self.debugName, section["header"]["transport_stream_id"], section["header"]["original_network_id"]))
 				if passed_test:
 					break
 
@@ -420,7 +421,7 @@ class JoyneScan(Screen): # the downloader
 		return passed_test
 
 	def readNIT(self, read_other_section=True):
-		print "[%s] Reading NIT..." % self.debugName
+		print("[%s] Reading NIT..." % self.debugName)
 
 		if self.nit_other_table_id == 0x00:
 			mask = 0xff
@@ -433,12 +434,12 @@ class JoyneScan(Screen): # the downloader
 
 		fd = dvbreader.open(self.demuxer_device, self.nit_pid, self.nit_current_table_id, mask, self.selectedNIM)
 		if fd < 0:
-			print "[%s] Cannot open the demuxer" % self.debugName
-			print "[%s] demuxer_device" % self.debugName, str(self.demuxer_device)
-			print "[%s] nit_pid" % self.debugName, str(self.nit_pid)
-			print "[%s] nit_current_table_id" % self.debugName, str(self.nit_current_table_id)
-			print "[%s] mask", str(mask)
-			print "[%s] current_slotid" % self.debugName, str(self.selectedNIM)
+			print("[%s] Cannot open the demuxer" % self.debugName)
+			print("[%s] demuxer_device" % self.debugName, str(self.demuxer_device))
+			print("[%s] nit_pid" % self.debugName, str(self.nit_pid))
+			print("[%s] nit_current_table_id" % self.debugName, str(self.nit_current_table_id))
+			print("[%s] mask", str(mask))
+			print("[%s] current_slotid" % self.debugName, str(self.selectedNIM))
 			self.showError(_('Cannot open the demuxer'))
 			return
 
@@ -460,9 +461,9 @@ class JoyneScan(Screen): # the downloader
 		timeout += datetime.timedelta(0, self.TIMEOUT_NIT)
 		while True:
 			if datetime.datetime.now() > timeout:
-				print "[%s] Timed out reading NIT" % self.debugName
+				print("[%s] Timed out reading NIT" % self.debugName)
 				if self.nit_other_table_id != 0x00:
-					print "[%s] No nit_other found - set nit_other_table_id=\"0x00\" for faster scanning?" % self.debugName
+					print("[%s] No nit_other found - set nit_other_table_id=\"0x00\" for faster scanning?" % self.debugName)
 				break
 
 			section = dvbreader.read_nit(fd, self.nit_current_table_id, self.nit_other_table_id)
@@ -471,12 +472,12 @@ class JoyneScan(Screen): # the downloader
 				continue
 
 			if self.extra_debug:
-				print "[%s] NIT raw section header" % self.debugName, section["header"]
-				print "[%s] NIT raw section content" % self.debugName, section["content"]
+				print("[%s] NIT raw section header" % self.debugName, section["header"])
+				print("[%s] NIT raw section content" % self.debugName, section["content"])
 
 			if (section["header"]["table_id"] == self.nit_current_table_id and not nit_current_completed):
 				if self.extra_debug:
-					print "[%s] raw section above is from NIT actual table." % self.debugName
+					print("[%s] raw section above is from NIT actual table." % self.debugName)
 
 				if (section["header"]["version_number"] != nit_current_section_version or section["header"]["network_id"] != nit_current_section_network_id):
 					nit_current_section_version = section["header"]["version_number"]
@@ -494,10 +495,10 @@ class JoyneScan(Screen): # the downloader
 
 			elif section["header"]["table_id"] == self.nit_other_table_id and not all_nit_others_completed:
 				if self.extra_debug:
-					print "[%s] raw section above is from NIT other table." % self.debugName
+					print("[%s] raw section above is from NIT other table." % self.debugName)
 				network_id = section["header"]["network_id"]
 
-				if network_id in nit_other_section_version and nit_other_section_version[network_id] == section["header"]["version_number"] and all(completed == True for completed in nit_other_completed.itervalues()):
+				if network_id in nit_other_section_version and nit_other_section_version[network_id] == section["header"]["version_number"] and all(completed == True for completed in nit_other_completed.values()):
 					all_nit_others_completed = True
 				else:
 
@@ -516,7 +517,7 @@ class JoyneScan(Screen): # the downloader
 							nit_other_completed[network_id] = True
 
 			elif self.extra_debug:
-				print "[%s] raw section above skipped. Either duplicate output or ID mismatch."
+				print("[%s] raw section above skipped. Either duplicate output or ID mismatch.")
 
 			if nit_current_completed and all_nit_others_completed:
 				break
@@ -531,7 +532,7 @@ class JoyneScan(Screen): # the downloader
 
 		if self.extra_debug:
 			for x in nit_content:
-				print "[%s] NIT item:" % self.debugName, x
+				print("[%s] NIT item:" % self.debugName, x)
 
 		#transponders_tmp = [x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["transponder"]]
 		transponders_count = self.processTransponders([x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["transponder"]])
@@ -543,16 +544,16 @@ class JoyneScan(Screen): # the downloader
 		self.tmp_service_list = [x for x in nit_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["serviceList"]]
 
 		if read_other_section and len(nit_other_completed):
-			print "[%s] Added/Updated %d transponders with network_id = 0x%x and other network_ids = %s" % (self.debugName, transponders_count, nit_current_section_network_id, ','.join(map(hex, nit_other_completed.keys())))
+			print("[%s] Added/Updated %d transponders with network_id = 0x%x and other network_ids = %s" % (self.debugName, transponders_count, nit_current_section_network_id, ','.join(map(hex, list(nit_other_completed.keys())))))
 		else:
-			print "[%s] Added/Updated %d transponders with network_id = 0x%x" % (self.debugName, transponders_count, nit_current_section_network_id)
+			print("[%s] Added/Updated %d transponders with network_id = 0x%x" % (self.debugName, transponders_count, nit_current_section_network_id))
 
-		print "[%s] Reading NIT completed." % self.debugName
+		print("[%s] Reading NIT completed." % self.debugName)
 
 		self.manager()
 
 	def readBAT(self):
-		print "[%s] Reading BAT..." % self.debugName
+		print("[%s] Reading BAT..." % self.debugName)
 
 		self.setDemuxer()
 
@@ -560,7 +561,7 @@ class JoyneScan(Screen): # the downloader
 
 		fd = dvbreader.open(self.demuxer_device, self.bat_pid, self.bat_table_id, 0xff, self.selectedNIM)
 		if fd < 0:
-			print "[%s] Cannot open the demuxer" % self.debugName
+			print("[%s] Cannot open the demuxer" % self.debugName)
 			self.showError(_('Cannot open the demuxer'))
 			return
 
@@ -574,7 +575,7 @@ class JoyneScan(Screen): # the downloader
 
 		while True:
 			if datetime.datetime.now() > timeout:
-				print "[%s] Timed out reading BAT" % self.debugName
+				print("[%s] Timed out reading BAT" % self.debugName)
 				break
 
 			section = dvbreader.read_bat(fd, self.bat_table_id)
@@ -583,8 +584,8 @@ class JoyneScan(Screen): # the downloader
 				continue
 
 			if self.extra_debug:
-				print "[%s] BAT raw section header" % self.debugName, section["header"]
-				print "[%s] BAT raw section content" % self.debugName, section["content"]
+				print("[%s] BAT raw section header" % self.debugName, section["header"])
+				print("[%s] BAT raw section content" % self.debugName, section["content"])
 
 			if section["header"]["table_id"] == self.bat_table_id:
 				if section["header"]["bouquet_id"] != self.bat["BouquetID"]:
@@ -609,12 +610,12 @@ class JoyneScan(Screen): # the downloader
 
 		self.tmp_bat_content = [x for x in bat_content if "descriptor_tag" in x and x["descriptor_tag"] == self.descriptors["lcn"]]
 
-		print "[%s] Reading BAT completed." % self.debugName
+		print("[%s] Reading BAT completed." % self.debugName)
 
 		self.manager()
 
 	def readSDT(self):
-		print "[%s] Reading SDTs..." % self.debugName
+		print("[%s] Reading SDTs..." % self.debugName)
 
 		mask = 0xff # only read SDT actual, not SDT other.
 
@@ -630,7 +631,7 @@ class JoyneScan(Screen): # the downloader
 
 		fd = dvbreader.open(self.demuxer_device, self.sdt_pid, self.sdt_current_table_id, mask, self.selectedNIM)
 		if fd < 0:
-			print "[%s][readSDT] Cannot open the demuxer" % self.debugName
+			print("[%s][readSDT] Cannot open the demuxer" % self.debugName)
 			self.showError(_('Cannot open the demuxer'))
 			return
 
@@ -639,7 +640,7 @@ class JoyneScan(Screen): # the downloader
 
 		while True:
 			if datetime.datetime.now() > timeout:
-				print "[%s][readSDT] Timed out" % self.debugName
+				print("[%s][readSDT] Timed out" % self.debugName)
 				break
 
 			section = dvbreader.read_sdt(fd, self.sdt_current_table_id, 0x00)
@@ -648,8 +649,8 @@ class JoyneScan(Screen): # the downloader
 				continue
 
 			if self.extra_debug:
-				print "[%s] SDT raw section header" % self.debugName, section["header"]
-				print "[%s] SDT raw section content" % self.debugName, section["content"]
+				print("[%s] SDT raw section header" % self.debugName, section["header"])
+				print("[%s] SDT raw section content" % self.debugName, section["content"])
 
 			# Check the ONID is correct... maybe we are receiving the "wrong" satellite or dish is still moving.
 			if self.transpondercurrent["original_network_id"] != section["header"]["original_network_id"]:
@@ -659,7 +660,7 @@ class JoyneScan(Screen): # the downloader
 			# A miss match happens when the NIT table on the home transponder has broken data.
 			# If there is a miss match correct it now, before the data is "used in anger".
 			if self.transpondercurrent["transport_stream_id"] != section["header"]["transport_stream_id"]:
-				print "[%s] readSDT ONID/TSID mismatch. Supposed to be reading: 0x%x/0x%x, Currently reading: 0x%x/0x%x. Will accept current data as  authoritative." % (self.debugName, self.transpondercurrent["original_network_id"], self.transpondercurrent["transport_stream_id"], section["header"]["original_network_id"], section["header"]["transport_stream_id"])
+				print("[%s] readSDT ONID/TSID mismatch. Supposed to be reading: 0x%x/0x%x, Currently reading: 0x%x/0x%x. Will accept current data as  authoritative." % (self.debugName, self.transpondercurrent["original_network_id"], self.transpondercurrent["transport_stream_id"], section["header"]["original_network_id"], section["header"]["transport_stream_id"]))
 				self.transpondercurrent["real_transport_stream_id"] = section["header"]["transport_stream_id"]
 
 			if section["header"]["table_id"] == self.sdt_current_table_id and not sdt_current_completed:
@@ -684,7 +685,7 @@ class JoyneScan(Screen): # the downloader
 		self.SDTsReadTime += time() - start_time
 
 		if not sdt_current_content: # if no channels in SDT just skip the transponder read. No need to abort the complete scan.
-			print "[%s][readSDT] no services found on transponder" % self.debugName
+			print("[%s][readSDT] no services found on transponder" % self.debugName)
 			self.manager()
 			return
 
@@ -722,16 +723,16 @@ class JoyneScan(Screen): # the downloader
 			self.logical_channel_number_dict[key] = service
 
 			if self.extra_debug:
-				print "[%s] LCN entry" % self.debugName, key, service
+				print("[%s] LCN entry" % self.debugName, key, service)
 				sid_list.append(service["service_id"])
 				lcn_list.append(service["logical_channel_number"])
 				if service["transport_stream_id"] not in tsid_list:
 					tsid_list.append(service["transport_stream_id"])
 
 		if self.extra_debug:
-			print "[%s] TSID list from BAT" % self.debugName, sorted(tsid_list)
-			print "[%s] SID list from BAT" % self.debugName, sorted(sid_list)
-			print "[%s] LCN list from BAT" % self.debugName, sorted(lcn_list)
+			print("[%s] TSID list from BAT" % self.debugName, sorted(tsid_list))
+			print("[%s] SID list from BAT" % self.debugName, sorted(sid_list))
+			print("[%s] LCN list from BAT" % self.debugName, sorted(lcn_list))
 
 	def correctTsidErrors(self):
 		# I wish this was not necessary but SI tables contain errors
@@ -748,7 +749,7 @@ class JoyneScan(Screen): # the downloader
 			SDTscanList.append(tp)
 		self.SDTscanList = SDTscanList
 		if self.extra_debug:
-			print "[%s] errors_dict" % self.debugName, errors_dict
+			print("[%s] errors_dict" % self.debugName, errors_dict)
 
 		for service in self.tmp_service_list:
 			key = "%x:%x" % (service["transport_stream_id"], service["original_network_id"])
@@ -771,7 +772,7 @@ class JoyneScan(Screen): # the downloader
 			transponder["orbital_position"] = self.getOrbPosFromBCD(transponder)
 			if not nimmanager.getNimListForSat(transponder["orbital_position"]): # Don't waste effort trying to scan or import from not configured satellites.
 				if self.extra_debug:
-					print "[%s] Skipping transponder as it is on a not configured satellite:" % self.debugName, transponder
+					print("[%s] Skipping transponder as it is on a not configured satellite:" % self.debugName, transponder)
 				continue
 			transponder["flags"] = 0
 			transponder["frequency"] = int(round(transponder["frequency"]*10, -3)) # Number will be five digits according to SI output, plus 3 trailing zeros. This is the same format used in satellites.xml.
@@ -788,7 +789,7 @@ class JoyneScan(Screen): # the downloader
 			transponders_count += 1
 
 			if self.extra_debug:
-				print "[%s] transponder" % self.debugName, transponder
+				print("[%s] transponder" % self.debugName, transponder)
 
 			self.SDTscanList.append(transponder)
 			self.actionsList.append("read SDTs") # Adds new task to actions list to scan SDT of this transponder.
@@ -802,7 +803,7 @@ class JoyneScan(Screen): # the downloader
 		self.SDTscanList.sort(key=lambda transponder: (not (self.homeTransponder["orbital_position"] == transponder["orbital_position"] and self.homeTransponder["frequency"] == transponder["frequency"] and self.homeTransponder["polarization"] == transponder["polarization"]), not (self.homeTransponder["orbital_position"] == transponder["orbital_position"]), transponder["orbital_position"], transponder["frequency"]))
 		if self.extra_debug:
 			for tp in self.SDTscanList:
-				print "[%s] transponder scan list sorted, %s  %d %s" % (self.debugName, self.getOrbPosHuman(tp["orbital_position"]), tp["frequency"], self.polarization_dict.get(tp["polarization"], "UNKNOWN"))
+				print("[%s] transponder scan list sorted, %s  %d %s" % (self.debugName, self.getOrbPosHuman(tp["orbital_position"]), tp["frequency"], self.polarization_dict.get(tp["polarization"], "UNKNOWN")))
 		self.progresscount += transponders_count
 
 		from Screens.Standby import inStandby
@@ -815,17 +816,17 @@ class JoyneScan(Screen): # the downloader
 		return transponders_count
 
 	def fixServiceNames(self):
-		from servicenames import ServiceNames
-		for servicekey in ServiceNames.keys():
+		from .servicenames import ServiceNames
+		for servicekey in list(ServiceNames.keys()):
 			if servicekey in self.tmp_services_dict:
 				self.tmp_services_dict[servicekey]["service_name"] = ServiceNames[servicekey]
 
 	def addServicesToTransponders(self):
-		servicekeys = self.tmp_services_dict.keys()
+		servicekeys = list(self.tmp_services_dict.keys())
 		for servicekey in servicekeys:
 			tpkey = "%x:%x:%x" % (self.tmp_services_dict[servicekey]["namespace"], self.tmp_services_dict[servicekey]["transport_stream_id"], self.tmp_services_dict[servicekey]["original_network_id"])
 			if tpkey not in self.transponders_dict: # Can this really happen?
-				print "[%s] tpkey not in self.transponders_dict" % self.debugName, self.tmp_services_dict[servicekey]
+				print("[%s] tpkey not in self.transponders_dict" % self.debugName, self.tmp_services_dict[servicekey])
 				del self.tmp_services_dict[servicekey]
 				continue
 			if "services" not in self.transponders_dict[tpkey]: # create a services dict on the transponder if one does not currently exist
@@ -837,7 +838,7 @@ class JoyneScan(Screen): # the downloader
 			self.transponders_dict[tpkey]["services"]["%x:%x" % (self.tmp_services_dict[servicekey]["service_type"], self.tmp_services_dict[servicekey]["service_id"])] = self.tmp_services_dict[servicekey]
 
 	def addLCNsToServices(self):
-		servicekeys = self.tmp_services_dict.keys()
+		servicekeys = list(self.tmp_services_dict.keys())
 		for servicekey in servicekeys:
 			if servicekey in self.logical_channel_number_dict and self.logical_channel_number_dict[servicekey]["logical_channel_number"] not in self.services_dict:
 				self.tmp_services_dict[servicekey]["logical_channel_number"] = self.logical_channel_number_dict[servicekey]["logical_channel_number"] # adds LCN to the service
@@ -845,13 +846,13 @@ class JoyneScan(Screen): # the downloader
 
 		if self.extra_debug:
 			for key in self.dict_sorter(self.tmp_services_dict, "service_name"): # prints service list in alphabetical order
-				print "[%s] service-alpha-order" % self.debugName, key, self.tmp_services_dict[key]
+				print("[%s] service-alpha-order" % self.debugName, key, self.tmp_services_dict[key])
 
 			for key in self.dict_sorter(self.tmp_services_dict, "logical_channel_number"): # prints service list in LCN order
-				print "[%s] service-LCN-order" % self.debugName, key, self.tmp_services_dict[key]
+				print("[%s] service-LCN-order" % self.debugName, key, self.tmp_services_dict[key])
 
 	def dict_sorter(self, in_dict, sort_by):
-		sort_list = [(x[0], x[1][sort_by]) for x in in_dict.items()]
+		sort_list = [(x[0], x[1][sort_by]) for x in list(in_dict.items())]
 		return [x[0] for x in sorted(sort_list, key=lambda listItem: listItem[1])]
 
 	def buildNamespace(self, transponder):
@@ -905,7 +906,7 @@ class JoyneScan(Screen): # the downloader
 	def readBouquetIndex(self):
 		try:
 			return open(self.path + "/" + self.bouquetsIndexFilename, "r").read()
-		except Exception, e:
+		except Exception as e:
 			return ""
 
 	def handleBouquetIndex(self):
@@ -933,7 +934,7 @@ class JoyneScan(Screen): # the downloader
 		bouquet_list = []
 		bouquet_list.append("#NAME %s\n" % self.bouquetName)
 
-		numbers = range(1, 1001)
+		numbers = list(range(1, 1001))
 		for number in numbers:
 			if number in self.services_dict:
 				bouquet_list.append(self.bouquetServiceLine(self.services_dict[number]))
@@ -947,7 +948,7 @@ class JoyneScan(Screen): # the downloader
 		last_scanned_bouquet_list = ["#NAME " + _("Last Scanned") + "\n"]
 		sort_list = []
 		avoid_duplicates = []
-		for key in self.tmp_services_dict.keys():
+		for key in list(self.tmp_services_dict.keys()):
 			service = self.tmp_services_dict[key]
 			# sort flat, alphabetic before numbers
 			ref = "%x:%x:%x:%x" % (
@@ -964,7 +965,7 @@ class JoyneScan(Screen): # the downloader
 		for key in sort_list:
 			service = self.tmp_services_dict[key]
 			last_scanned_bouquet_list.append(self.bouquetServiceLine(service))
-		print "[%s] Writing Last Scanned bouquet..." % self.debugName
+		print("[%s] Writing Last Scanned bouquet..." % self.debugName)
 		with open(self.path + "/" + self.lastScannnedBouquetFilename, "w") as bouquet_current:
 			bouquet_current.write(''.join(last_scanned_bouquet_list))
 
@@ -981,7 +982,7 @@ class JoyneScan(Screen): # the downloader
 		return "#SERVICE 1:320:0:0:0:0:0:0:0:0:\n#DESCRIPTION  \n"
 
 	def cleanServiceName(self, text):
-		control_chars = ''.join(map(unichr, range(0,32) + range(127,160)))
+		control_chars = ''.join(map(chr, list(range(0,32)) + list(range(127,160))))
 		control_char_re = re.compile('[%s]' % re.escape(control_chars))
 		return control_char_re.sub('', text).decode('latin-1').encode("utf8")
 
@@ -1011,7 +1012,7 @@ class JoyneScan(Screen): # the downloader
 
 		self.printStats()
 
-		print "[%s] Scan successfully completed" % self.debugName
+		print("[%s] Scan successfully completed" % self.debugName)
 
 		self.timer = eTimer()
 		self.timer.callback.append(self.scanCompletedSuccessfully)
@@ -1022,12 +1023,12 @@ class JoyneScan(Screen): # the downloader
 
 	def printStats(self):
 		total_time = time() - self.run_start_time
-		print "[%s] time tuning %.2f" % (self.debugName, self.tuningTime)
-		print "[%s] time reading NIT %.2f" % (self.debugName, self.NITreadTime)
-		print "[%s] time reading BAT %.2f" % (self.debugName, self.BATreadTime)
-		print "[%s] time reading SDTs on %d transponders %.2f" % (self.debugName, len(self.SDTscanList), self.SDTsReadTime)
-		print "[%s] time processing %.2f" % (self.debugName, total_time - (self.tuningTime + self.NITreadTime + self.BATreadTime + self.SDTsReadTime))
-		print "[%s] total run time %.2f" % (self.debugName, total_time)
+		print("[%s] time tuning %.2f" % (self.debugName, self.tuningTime))
+		print("[%s] time reading NIT %.2f" % (self.debugName, self.NITreadTime))
+		print("[%s] time reading BAT %.2f" % (self.debugName, self.BATreadTime))
+		print("[%s] time reading SDTs on %d transponders %.2f" % (self.debugName, len(self.SDTscanList), self.SDTsReadTime))
+		print("[%s] time processing %.2f" % (self.debugName, total_time - (self.tuningTime + self.NITreadTime + self.BATreadTime + self.SDTsReadTime)))
+		print("[%s] total run time %.2f" % (self.debugName, total_time))
 
 
 	def isValidOnidTsid(self, transponder):
@@ -1048,7 +1049,7 @@ class JoyneScan(Screen): # the downloader
 
 	def setDemuxer(self):
 		self.demuxer_device = "/dev/dvb/adapter%d/demux%d" % (self.adapter, self.demuxer_id)
-		print "[%s] Demuxer %d" % (self.debugName, self.demuxer_id)
+		print("[%s] Demuxer %d" % (self.debugName, self.demuxer_id))
 
 	def setParams(self):
 		params = eDVBFrontendParametersSatellite()
@@ -1199,7 +1200,7 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 		self.startDownload()
 
 	def startDownload(self):
-		print "[JoyneScan] startDownload"
+		print("[JoyneScan] startDownload")
 		self.session.openWithCallback(self.close, JoyneScan, {})
 
 	def joynescanCallback(self, answer=None):
@@ -1238,7 +1239,7 @@ class JoyneScan_Setup(ConfigListScreen, Screen):
 		try:
 			self.scheduleInfo = AutoScheduleTimer.instance.doneConfiguring()
 		except AttributeError as e:
-			print "[JoyneScan] Timer.instance not available for reconfigure.", e
+			print("[JoyneScan] Timer.instance not available for reconfigure.", e)
 			self.scheduleInfo = ""
 
 
@@ -1302,7 +1303,7 @@ def Scheduleautostart(reason, session=None, **kwargs):
 	schedulename = "JoyneScan-Scheduler"
 	configname = config.plugins.joynescan
 	
-	print "[%s][Scheduleautostart] reason(%d), session" % (schedulename, reason), session
+	print("[%s][Scheduleautostart] reason(%d), session" % (schedulename, reason), session)
 	if reason == 0 and session is None:
 		return
 	global autoScheduleTimer
@@ -1321,11 +1322,11 @@ def Scheduleautostart(reason, session=None, **kwargs):
 				from Tools import Notifications
 				Notifications.AddNotificationWithID("Standby", Standby)
 
-		print "[%s][Scheduleautostart] AutoStart Enabled" % schedulename
+		print("[%s][Scheduleautostart] AutoStart Enabled" % schedulename)
 		if autoScheduleTimer is None:
 			autoScheduleTimer = AutoScheduleTimer(session)
 	else:
-		print "[%s][Scheduleautostart] Stop" % schedulename
+		print("[%s][Scheduleautostart] Stop" % schedulename)
 		if autoScheduleTimer is not None:
 			autoScheduleTimer.schedulestop()
 
@@ -1343,14 +1344,14 @@ class AutoScheduleTimer:
 		self.ScheduleTime = 0
 		now = int(time())
 		if self.config.schedule.value:
-			print"[%s][AutoScheduleTimer] Schedule Enabled at " % self.schedulename, strftime("%c", localtime(now))
+			print("[%s][AutoScheduleTimer] Schedule Enabled at " % self.schedulename, strftime("%c", localtime(now)))
 			if now > 1546300800: # Tuesday, January 1, 2019 12:00:00 AM
 				self.scheduledate()
 			else:
-				print"[%s][AutoScheduleTimer] STB clock not yet set." % self.schedulename
+				print("[%s][AutoScheduleTimer] STB clock not yet set." % self.schedulename)
 				self.scheduleactivityTimer.start(36000)
 		else:
-			print"[%s][AutoScheduleTimer] Schedule Disabled at" % self.schedulename, strftime("%c", localtime(now))
+			print("[%s][AutoScheduleTimer] Schedule Disabled at" % self.schedulename, strftime("%c", localtime(now)))
 			self.scheduleactivityTimer.stop()
 
 		assert AutoScheduleTimer.instance is None, "class AutoScheduleTimer is a singleton class and just one instance of this class is allowed!"
@@ -1389,7 +1390,7 @@ class AutoScheduleTimer:
 			self.scheduletimer.startLongTimer(next)
 		else:
 			self.ScheduleTime = -1
-		print"[%s][scheduledate] Time set to" % self.schedulename, strftime("%c", localtime(self.ScheduleTime)), strftime("(now=%c)", localtime(now))
+		print("[%s][scheduledate] Time set to" % self.schedulename, strftime("%c", localtime(self.ScheduleTime)), strftime("(now=%c)", localtime(now)))
 		self.config.nextscheduletime.value = self.ScheduleTime
 		self.config.nextscheduletime.save()
 		configfile.save()
@@ -1405,7 +1406,7 @@ class AutoScheduleTimer:
 		atLeast = 0
 		if wake - now < 60:
 			atLeast = 60
-			print"[%s][ScheduleonTimer] onTimer occured at" % self.schedulename, strftime("%c", localtime(now))
+			print("[%s][ScheduleonTimer] onTimer occured at" % self.schedulename, strftime("%c", localtime(now)))
 			from Screens.Standby import inStandby
 			if not inStandby:
 				message = _("%s update is about to start.\nDo you want to allow this?") % self.schedulename
@@ -1419,21 +1420,21 @@ class AutoScheduleTimer:
 		now = int(time())
 		if answer is False:
 			if self.config.retrycount.value < 2:
-				print"[%s][doSchedule] Schedule delayed." % self.schedulename
+				print("[%s][doSchedule] Schedule delayed." % self.schedulename)
 				self.config.retrycount.value += 1
 				self.ScheduleTime = now + (int(self.config.retry.value) * 60)
-				print"[%s][doSchedule] Time now set to" % self.schedulename, strftime("%c", localtime(self.ScheduleTime)), strftime("(now=%c)", localtime(now))
+				print("[%s][doSchedule] Time now set to" % self.schedulename, strftime("%c", localtime(self.ScheduleTime)), strftime("(now=%c)", localtime(now)))
 				self.scheduletimer.startLongTimer(int(self.config.retry.value) * 60)
 			else:
 				atLeast = 60
-				print"[%s][doSchedule] Enough Retries, delaying till next schedule." % self.schedulename, strftime("%c", localtime(now))
+				print("[%s][doSchedule] Enough Retries, delaying till next schedule." % self.schedulename, strftime("%c", localtime(now)))
 				self.session.open(MessageBox, _("Enough Retries, delaying till next schedule."), MessageBox.TYPE_INFO, timeout = 10)
 				self.config.retrycount.value = 0
 				self.scheduledate(atLeast)
 		else:
 			self.timer = eTimer()
 			self.timer.callback.append(self.runscheduleditem)
-			print"[%s][doSchedule] Running Schedule" % self.schedulename, strftime("%c", localtime(now))
+			print("[%s][doSchedule] Running Schedule" % self.schedulename, strftime("%c", localtime(now)))
 			self.timer.start(100, 1)
 
 	def runscheduleditem(self):
@@ -1442,9 +1443,9 @@ class AutoScheduleTimer:
 	def runscheduleditemCallback(self, answer=None):
 		global wasScheduleTimerWakeup
 		from Screens.Standby import Standby, inStandby, TryQuitMainloop, inTryQuitMainloop
-		print"[%s][runscheduleditemCallback] inStandby" % self.schedulename, inStandby
+		print("[%s][runscheduleditemCallback] inStandby" % self.schedulename, inStandby)
 		if wasScheduleTimerWakeup and inStandby and self.config.scheduleshutdown.value and not self.session.nav.getRecordings() and not inTryQuitMainloop:
-			print "[%s] Returning to deep standby after scheduled wakeup" % self.schedulename
+			print("[%s] Returning to deep standby after scheduled wakeup" % self.schedulename)
 			self.session.open(TryQuitMainloop, 1)
 		wasScheduleTimerWakeup = False # clear this as any subsequent run will not be from wake up from deep
 
@@ -1452,12 +1453,12 @@ class AutoScheduleTimer:
 		now = int(time())
 		if self.config.schedule.value:
 			if autoScheduleTimer is not None:
-				print"[%s][doneConfiguring] Schedule Enabled at" % self.schedulename, strftime("%c", localtime(now))
+				print("[%s][doneConfiguring] Schedule Enabled at" % self.schedulename, strftime("%c", localtime(now)))
 				autoScheduleTimer.scheduledate()
 		else:
 			if autoScheduleTimer is not None:
 				self.ScheduleTime = 0
-				print"[%s][doneConfiguring] Schedule Disabled at" % self.schedulename, strftime("%c", localtime(now))
+				print("[%s][doneConfiguring] Schedule Disabled at" % self.schedulename, strftime("%c", localtime(now)))
 				autoScheduleTimer.schedulestop()
 		# scheduletext is not used for anything but could be returned to the calling function to display in the GUI.
 		if self.ScheduleTime > 0:
