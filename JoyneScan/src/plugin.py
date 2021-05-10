@@ -8,8 +8,8 @@ from Components.NimManager import nimmanager
 from Plugins.Plugin import PluginDescriptor
 from Tools.BoundFunction import boundFunction
 
-from joynescan import Scheduleautostart, JoyneScan, JoyneScan_Setup
-from providers import PROVIDERS
+from .joynescan import Scheduleautostart, JoyneScan, JoyneScan_Setup
+from .providers import PROVIDERS
 
 config.plugins.joynescan = ConfigSubsection()
 config.plugins.joynescan.provider = ConfigSelection(default = "Joyne_NL", choices = [(x, PROVIDERS[x]["name"]) for x in sorted(PROVIDERS.keys())])
@@ -50,7 +50,7 @@ def JoyneScanCallback(close=None, answer=None): # Called on exiting setup screen
 		close(True)
 
 def JoyneScanWakeupTime(): # Called on shutdown (going into deep standby) to tell the box when to wake from deep
-	print "[JoyneScan] next wake up due %d" % (config.plugins.joynescan.schedule.value and config.plugins.joynescan.schedulewakefromdeep.value and config.plugins.joynescan.nextscheduletime.value > 0 and config.plugins.joynescan.nextscheduletime.value or -1)
+	print("[JoyneScan] next wake up due %d" % (config.plugins.joynescan.schedule.value and config.plugins.joynescan.schedulewakefromdeep.value and config.plugins.joynescan.nextscheduletime.value > 0 and config.plugins.joynescan.nextscheduletime.value or -1))
 	return config.plugins.joynescan.schedule.value and config.plugins.joynescan.schedulewakefromdeep.value and config.plugins.joynescan.nextscheduletime.value > 0 and config.plugins.joynescan.nextscheduletime.value or -1
 
 def Plugins(**kwargs):

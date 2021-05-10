@@ -1,14 +1,15 @@
+from __future__ import print_function
 import re
 
 class LamedbReader():
 	def readLamedb(self, path):
-		print "[JoyneScan-LamedbReader] Reading lamedb..."
+		print("[JoyneScan-LamedbReader] Reading lamedb...")
 
 		transponders = {}
 
 		try:
 			lamedb = open(path + "/lamedb", "r")
-		except Exception, e:
+		except Exception as e:
 			return transponders
 
 		content = lamedb.read()
@@ -18,7 +19,7 @@ class LamedbReader():
 		result = re.match('eDVB services /([45])/', content)
 		if result:
 			lamedb_ver = int(result.group(1))
-			print "[JoyneScan-LamedbReader] lamedb ver", lamedb_ver
+			print("[JoyneScan-LamedbReader] lamedb ver", lamedb_ver)
 		if lamedb_ver == 4:
 			transponders = self.parseLamedbV4Content(content)
 		elif  lamedb_ver == 5:
@@ -158,7 +159,7 @@ class LamedbReader():
 
 			services_count += 1
 
-		print "[JoyneScan-LamedbReader] Read %d transponders and %d services" % (transponders_count, services_count)
+		print("[JoyneScan-LamedbReader] Read %d transponders and %d services" % (transponders_count, services_count))
 		return transponders
 
 	def parseLamedbV5Content(self, content):
@@ -281,5 +282,5 @@ class LamedbReader():
 	
 				services_count += 1
 
-		print "[JoyneScan-LamedbReader] Read %d transponders and %d services" % (transponders_count, services_count)
+		print("[JoyneScan-LamedbReader] Read %d transponders and %d services" % (transponders_count, services_count))
 		return transponders
