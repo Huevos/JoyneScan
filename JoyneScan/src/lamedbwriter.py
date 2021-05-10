@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+import six
+
 import os, codecs, re
 
 from enigma import eDVBFrontendParametersSatellite
@@ -121,8 +123,12 @@ class LamedbWriter():
 				control_chars = ''.join(map(chr, list(range(0,32)) + list(range(127,160))))
 				control_char_re = re.compile('[%s]' % re.escape(control_chars))
 				if 'provider_name' in list(service.keys()):
-					service_name = control_char_re.sub('', service["service_name"]).decode('latin-1').encode("utf8")
-					provider_name = control_char_re.sub('', service["provider_name"]).decode('latin-1').encode("utf8")
+					if six.PY2:
+						service_name = control_char_re.sub('', service["service_name"]).decode('latin-1').encode("utf8")
+						provider_name = control_char_re.sub('', service["provider_name"]).decode('latin-1').encode("utf8")
+					else:
+						service_name = control_char_re.sub('', service["service_name"])
+						provider_name = control_char_re.sub('', service["provider_name"])
 				else:
 					service_name = service["service_name"]
 
@@ -137,7 +143,10 @@ class LamedbWriter():
 					service_flags = ",f:%x" % service["service_flags"]
 
 				if 'service_line' in list(service.keys()):
-					lamedblist.append(self.utf8_convert("%s\n" % service["service_line"]))
+					if six.PY2:
+						lamedblist.append(self.utf8_convert("%s\n" % service["service_line"]))
+					else:
+						lamedblist.append("%s\n" % service["service_line"])
 				else:
 					lamedblist.append("p:%s%s%s\n" % (provider_name, service_ca, service_flags))
 				services_count += 1
@@ -265,8 +274,12 @@ class LamedbWriter():
 				control_chars = ''.join(map(chr, list(range(0,32)) + list(range(127,160))))
 				control_char_re = re.compile('[%s]' % re.escape(control_chars))
 				if 'provider_name' in list(service.keys()):
-					service_name = control_char_re.sub('', service["service_name"]).decode('latin-1').encode("utf8")
-					provider_name = control_char_re.sub('', service["provider_name"]).decode('latin-1').encode("utf8")
+					if six.PY2:
+						service_name = control_char_re.sub('', service["service_name"]).decode('latin-1').encode("utf8")
+						provider_name = control_char_re.sub('', service["provider_name"]).decode('latin-1').encode("utf8")
+					else:
+						service_name = control_char_re.sub('', service["service_name"])
+						provider_name = control_char_re.sub('', service["provider_name"])
 				else:
 					service_name = service["service_name"]
 
@@ -282,7 +295,10 @@ class LamedbWriter():
 
 				if 'service_line' in list(service.keys()): # from lamedb
 					if len(service["service_line"]):
-						lamedblist.append(",%s\n" % self.utf8_convert(service["service_line"]))
+						if six.PY2:
+							lamedblist.append(",%s\n" % self.utf8_convert(service["service_line"]))
+						else:
+							lamedblist.append(",%s\n" % (service["service_line"]))
 					else:
 						lamedblist.append("\n")
 				else: # from scanner
