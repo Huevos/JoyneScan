@@ -313,9 +313,12 @@ class LamedbWriter():
 		print("[JoyneScan-LamedbWriter] Wrote %d transponders and %d services" % (transponders_count, services_count))
 
 	def utf8_convert(self, text):
-		for encoding in ["utf8","latin-1"]:
+		for encoding in ["utf8", "latin1"]:
 			try:
-				text.decode(encoding=encoding)
+				if six.PY2:
+					text.decode(encoding=encoding)
+				else:
+					six.ensure_str(text, encoding=encoding)
 			except UnicodeDecodeError:
 				encoding = None
 			else:
@@ -324,4 +327,7 @@ class LamedbWriter():
 			return text
 		if encoding is None:
 			encoding = "utf8"
-		return text.decode(encoding, errors="ignore").encode("utf8")
+		if six.PY2:
+			return text.decode(encoding=encoding, errors="ignore").encode("utf8")
+		else:
+			return six.ensure_text(six.ensure_str(text, encoding=encoding, errors='ignore'), encoding='utf8')
