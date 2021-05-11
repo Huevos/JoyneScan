@@ -1,6 +1,7 @@
 # for localized messages
 from __future__ import print_function
 from . import _
+import six
 
 from Components.ActionMap import ActionMap
 from Components.config import config, getConfigListEntry, configfile, ConfigYesNo
@@ -984,7 +985,9 @@ class JoyneScan(Screen): # the downloader
 	def cleanServiceName(self, text):
 		control_chars = ''.join(map(chr, list(range(0,32)) + list(range(127,160))))
 		control_char_re = re.compile('[%s]' % re.escape(control_chars))
-		return control_char_re.sub('', text).decode('latin-1').encode("utf8")
+		if six.PY2:
+			return control_char_re.sub('', text).decode('latin-1').encode("utf8")
+		return control_char_re.sub('', text)
 
 	def createBouquet(self):
 		self.handleBouquetIndex()
